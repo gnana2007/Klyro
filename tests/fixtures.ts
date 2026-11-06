@@ -4,7 +4,7 @@ import { makeNode } from "../src/core/analysis";
 import type { Snapshot } from "../src/core/types";
 export function snapshot(): Snapshot {
   const s: Snapshot = {
-    schema: "hscan.snapshot.v1",
+    schema: "hscan.snapshot.v2",
     id: "00000000-0000-4000-8000-000000000001",
     chainId: 31337,
     address: "0x00000000000000000000000000000000000000c4",
@@ -31,6 +31,17 @@ export function snapshot(): Snapshot {
     source: { status: "UNKNOWN", url: null, files: [] },
     dependencies: [],
     poolContext: { manager: null, pools: [], status: "UNKNOWN" },
+    hookStatus: "ADDRESS_ONLY",
+    deployment: {
+      status: "UNKNOWN",
+      txHash: null,
+      blockNumber: null,
+      timestamp: null,
+      deployer: null,
+      method: "fixture",
+    },
+    participants: [],
+    activity: null,
     findings: [],
     evidence: { nodes: [], edges: [] },
     attentionScore: 0,

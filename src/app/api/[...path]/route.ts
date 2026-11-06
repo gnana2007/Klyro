@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { isAddress } from "viem";
+import { isAddress, getAddress } from "viem";
 import { z } from "zod";
 import { body, protect, failure, HttpError } from "@/server/http";
 import * as db from "@/server/db";
+import * as repo from "@/server/repository";
+import { indexHookActivity } from "@/server/activity";
 import { scanHook } from "@/server/scan";
 import { compareSnapshots } from "@/core/diff";
 import { explain } from "@/server/ai";
@@ -13,7 +15,81 @@ import { readFileSync } from "node:fs";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
+
+/**
+ * Write the hook row, observed activities and participants for a saved
+ * snapshot.
+ *
+ * The snapshot itself only carries an activity summary (counts and window), so
+ * the same bounded window is re-queried here to obtain the individual log rows.
+ * Those reads are pinned to the snapshot's recorded range and deduplicated on
+ * (chain, tx, logIndex), so a rescan of unchanged chain state inserts zero new
+ * rows. A provider failure is thrown so the caller logs it; it never becomes a
+ * fabricated activity row.
+ */
+async function persistScanRelations(snapshot: import("@/core/types").Snapshot) {
+  repo.upsertHook({
+    chainId: snapshot.chainId,
+    address: snapshot.address,
+    status:
+      snapshot.hookStatus === "UNKNOWN" ? "ADDRESS_ONLY" : snapshot.hookStatus,
+    isHook: snapshot.hookStatus === "POOL_OBSERVED",
+    deployer: snapshot.deployment?.deployer ?? null,
+    deploymentTxHash: snapshot.deployment?.txHash ?? null,
+    deploymentBlock: snapshot.deployment?.blockNumber ?? null,
+    deploymentTimestamp: snapshot.deployment?.timestamp ?? null,
+    scanId: snapshot.id,
+  });
+
+  let inserted = 0;
+  const summary = snapshot.activity;
+  if (summary && summary.status !== "UNKNOWN") {
+    let indexed;
+    try {
+      indexed = await indexHookActivity(clientFor(snapshot.chainId), {
+        chainId: snapshot.chainId,
+        address: getAddress(snapshot.address),
+        fromBlock: BigInt(summary.fromBlock),
+        toBlock: BigInt(summary.toBlock),
+        scanId: snapshot.id,
+      });
+    } catch (error) {
+      throw new Error(
+        "Activity rows could not be recorded: " +
+          (error instanceof Error ? error.message : "unknown error"),
+      );
+    }
+    inserted = repo.recordActivities(indexed.activities);
+    repo.setLastIndexedBlock(
+      snapshot.chainId,
+      snapshot.address,
+      indexed.toBlock,
+    );
+  }
+
+  for (const p of snapshot.participants) {
+    repo.upsertParticipant({
+      chainId: snapshot.chainId,
+      hookAddress: snapshot.address,
+      address: p.address,
+      role: p.role as repo.ParticipantRole,
+      evidence: p.evidence,
+      status: p.status,
+      activityCount: p.activityCount ?? 0,
+    });
+  }
+  return inserted;
+}
 const address = z.string().refine((a) => isAddress(a), "Invalid EVM address");
+const ACTIVITY_KINDS = [
+  "deployment",
+  "pool-initialized",
+  "liquidity-added",
+  "liquidity-removed",
+  "swap",
+  "donation",
+  "transfer",
+] as const;
 const scanSchema = z
   .object({
     address,
@@ -86,9 +162,56 @@ export async function GET(request: Request, context: Context) {
       if (!job) throw new HttpError(404, "Scan not found");
       return Response.json({ ...job, inference: db.latestAI(p[1]) });
     }
-    if (p[0] === "hooks" && p[1] && p[2]) {
+    if (p[0] === "hooks" && p[1] && p[2] && p[3] === "history") {
       address.parse(p[2]);
       return Response.json(db.history(Number(p[1]), p[2]));
+    }
+    if (p[0] === "hooks" && p[1] && p[2] && p[3] === "activity") {
+      address.parse(p[2]);
+      const chainId = Number(p[1]);
+      if (!NETWORKS.some((n) => n.id === chainId))
+        throw new HttpError(400, "Unsupported chain");
+      const q = new URL(request.url).searchParams;
+      const kind = q.get("kind") ?? undefined;
+      const limit = q.get("limit") ? Number(q.get("limit")) : 50;
+      const offset = q.get("offset") ? Number(q.get("offset")) : 0;
+      if (
+        kind &&
+        !ACTIVITY_KINDS.includes(kind as (typeof ACTIVITY_KINDS)[number])
+      )
+        throw new HttpError(400, "Unknown activity kind");
+      if (!Number.isFinite(limit) || !Number.isFinite(offset))
+        throw new HttpError(400, "limit and offset must be numbers");
+      const hookAddress = p[2];
+      return Response.json({
+        ...repo.listActivities({
+          chainId,
+          hookAddress,
+          kind: kind as repo.ActivityKind | undefined,
+          fromBlock: q.get("fromBlock") ?? undefined,
+          toBlock: q.get("toBlock") ?? undefined,
+          limit,
+          offset,
+        }),
+        counts: repo.activityKindCounts(chainId, hookAddress),
+        lastIndexedBlock: repo.lastIndexedBlock(chainId, hookAddress),
+      });
+    }
+    if (p[0] === "hooks" && p[1] && p[2] && p[3] === "profile") {
+      address.parse(p[2]);
+      const chainId = Number(p[1]);
+      if (!NETWORKS.some((n) => n.id === chainId))
+        throw new HttpError(400, "Unsupported chain");
+      const hook = repo.getHook(chainId, p[2]);
+      return Response.json({
+        observed: hook !== null,
+        hook,
+        participants: repo.listParticipants(chainId, p[2]),
+        counts: repo.activityKindCounts(chainId, p[2]),
+        lastIndexedBlock: repo.lastIndexedBlock(chainId, p[2]),
+        notice:
+          "Every field here was written from a block-pinned scan. Participants carry the evidence that justified their role.",
+      });
     }
     if (p[0] === "evidence" && p[1]) {
       const s = db.getSnapshot(p[1]);
@@ -159,6 +282,18 @@ export async function POST(request: Request, context: Context) {
           );
           s.id = id;
           db.saveSnapshot(s);
+          // Persist the relational record (hook, activities, participants) so
+          // the same observation is queryable across hooks. Failure here is
+          // reported on the job, not hidden: the snapshot above is the hashed
+          // record and stays truthful either way.
+          try {
+            await persistScanRelations(s);
+          } catch (error) {
+            console.error(
+              "relational persistence failed for scan " + id,
+              error instanceof Error ? error.message : error,
+            );
+          }
           if (input.explain) {
             db.stageJob(id, "running", "Requesting 0G explanation");
             await explain(s, null);

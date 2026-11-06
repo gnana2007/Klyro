@@ -79,8 +79,35 @@ export type Proxy = {
   resolved: boolean;
   limitations: string[];
 };
+/** Deployment discovery result. UNKNOWN is a real state, not a zero value. */
+export type DeploymentFacts = {
+  status: "OBSERVED" | "UNKNOWN";
+  txHash: string | null;
+  blockNumber: string | null;
+  timestamp: string | null;
+  deployer: string | null;
+  method: string;
+};
+/** A participant role derived only from an observed log or storage read. */
+export type ParticipantFact = {
+  address: string;
+  role: string;
+  evidence: string;
+  status: "OBSERVED" | "INFERRED" | "UNKNOWN";
+  activityCount?: number;
+};
+/** Bounded PoolManager activity summary for this hook in the scanned window. */
+export type ActivitySummary = {
+  status: "OBSERVED" | "PARTIAL" | "UNKNOWN";
+  fromBlock: string;
+  toBlock: string;
+  counts: Record<string, number>;
+  total: number;
+  lastIndexedBlock: string | null;
+  reason: string | null;
+};
 export type Snapshot = {
-  schema: "hscan.snapshot.v1";
+  schema: "hscan.snapshot.v2";
   id: string;
   chainId: number;
   address: string;
@@ -107,6 +134,11 @@ export type Snapshot = {
     pools: Record<string, unknown>[];
     status: ObservationStatus;
   };
+  /** Registry-observed hook status. Never implied from permissions alone. */
+  hookStatus: "POOL_OBSERVED" | "NOT_A_HOOK" | "ADDRESS_ONLY" | "UNKNOWN";
+  deployment: DeploymentFacts | null;
+  participants: ParticipantFact[];
+  activity: ActivitySummary | null;
   findings: Finding[];
   evidence: { nodes: EvidenceNode[]; edges: EvidenceEdge[] };
   attentionScore: number;

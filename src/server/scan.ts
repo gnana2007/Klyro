@@ -21,6 +21,8 @@ import type { Snapshot } from "../core/types";
 import { clientFor, NETWORKS } from "./chains";
 import { resolveProxy } from "./proxy";
 import { verifiedSource } from "./source";
+import { indexHookActivity, participantsFromActivity } from "./activity";
+import { discoverDeployment } from "./investigation";
 import { readFileSync } from "node:fs";
 import { executions } from "./db";
 export type ScanInput = {
@@ -132,7 +134,7 @@ export async function scanHook(
     }
   }
   const s: Snapshot = {
-    schema: "hscan.snapshot.v1",
+    schema: "hscan.snapshot.v2",
     id: randomUUID(),
     chainId: input.chainId,
     address,
@@ -155,6 +157,14 @@ export async function scanHook(
     source,
     dependencies: ops.candidates,
     poolContext: { manager, pools, status: poolStatus },
+    hookStatus: pools.length
+      ? "POOL_OBSERVED"
+      : permissionBitmap === 0
+        ? "NOT_A_HOOK"
+        : "ADDRESS_ONLY",
+    deployment: null,
+    participants: [],
+    activity: null,
     findings: [],
     evidence: { nodes: [], edges: [] },
     attentionScore: 0,
@@ -292,6 +302,107 @@ export async function scanHook(
     }
   }
   Object.assign(s, fingerprints({ ...s, config: { owner: ownerRead } }));
+
+  // Relational investigation facts. Every one is block-pinned and bounded; a
+  // failure here degrades to UNKNOWN with the reason recorded, never to a
+  // comfortable default, and it never aborts the bytecode/permission scan.
+  onStage("Recording deployment and pool activity");
+  try {
+    s.deployment = await discoverDeployment(
+      input.chainId,
+      address,
+      blockNumber,
+    );
+  } catch (error) {
+    s.deployment = {
+      status: "UNKNOWN",
+      txHash: null,
+      blockNumber: null,
+      timestamp: null,
+      deployer: null,
+      method: "deployment discovery did not complete",
+    };
+    limitations.push(
+      "Deployment discovery failed: " +
+        (error instanceof Error ? error.message : "unknown error"),
+    );
+  }
+  if (manager) {
+    try {
+      const from = input.poolFromBlock
+        ? BigInt(input.poolFromBlock)
+        : blockNumber > 300n
+          ? blockNumber - 300n
+          : 0n;
+      const indexed = await indexHookActivity(client, {
+        chainId: input.chainId,
+        address,
+        fromBlock: from,
+        toBlock: blockNumber,
+        scanId: s.id,
+      });
+      s.activity = {
+        status: indexed.activities.length ? "OBSERVED" : "PARTIAL",
+        fromBlock: indexed.fromBlock,
+        toBlock: indexed.toBlock,
+        counts: indexed.counts,
+        total: indexed.activities.length,
+        lastIndexedBlock: indexed.toBlock,
+        reason: indexed.activities.length
+          ? null
+          : "No PoolManager event for an observed pool inside this window. Older activity may exist.",
+      };
+      s.participants = participantsFromActivity(
+        input.chainId,
+        address,
+        indexed.activities,
+      ).map((p) => ({
+        address: p.address,
+        role: p.role,
+        evidence: p.evidence,
+        status: p.status,
+        activityCount: p.activityCount,
+      }));
+      limitations.push(...indexed.limitations);
+    } catch (error) {
+      s.activity = {
+        status: "UNKNOWN",
+        fromBlock: "0",
+        toBlock: blockNumber.toString(),
+        counts: {},
+        total: 0,
+        lastIndexedBlock: null,
+        reason:
+          "PoolManager activity indexing did not complete: " +
+          (error instanceof Error ? error.message : "unknown error"),
+      };
+      limitations.push(
+        "PoolManager activity indexing failed, so no activity counts are reported.",
+      );
+    }
+  }
+  if (ownerRead)
+    s.participants.push({
+      address: ownerRead.toLowerCase(),
+      role: "owner",
+      evidence: "owner() getter returned this address at the scanned block",
+      status: "OBSERVED",
+    });
+  if (s.deployment?.deployer)
+    s.participants.push({
+      address: s.deployment.deployer.toLowerCase(),
+      role: "deployer",
+      evidence: `creation transaction ${s.deployment.txHash} at block ${s.deployment.blockNumber}`,
+      status: "OBSERVED",
+    });
+  if (proxy.admin)
+    s.participants.push({
+      address: proxy.admin.toLowerCase(),
+      role: "proxy-admin",
+      evidence: "EIP-1967 admin storage slot at the scanned block",
+      status: "OBSERVED",
+    });
+
   onStage("Applying deterministic rules and validating evidence");
   // Detect a reorg during the scan before persisting cross-request observations.
   const confirm = await client.getBlock({ blockNumber });

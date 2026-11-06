@@ -401,10 +401,92 @@ export default function Workbench() {
                           value={scan.stateFingerprint}
                         />
                         <Value
+                          label="Observation fingerprint"
+                          value={scan.observationFingerprint}
+                        />
+                        <Value
                           label="Analysis version"
                           value={scan.analysisVersion}
                         />
                       </div>
+                    </section>
+                    <section>
+                      <h2>Hook identity</h2>
+                      <div className="facts">
+                        <Value
+                          label="Hook status"
+                          value={scan.hookStatus.replaceAll("_", " ")}
+                        />
+                        <Value
+                          label="Deployment"
+                          value={
+                            scan.deployment?.status === "OBSERVED"
+                              ? `tx ${scan.deployment.txHash} at block ${scan.deployment.blockNumber}`
+                              : "UNKNOWN — creation not inside the probed window"
+                          }
+                        />
+                        <Value
+                          label="Deployer"
+                          value={
+                            scan.deployment?.deployer ??
+                            "UNKNOWN — not observed"
+                          }
+                        />
+                        <Value
+                          label="Deployed at (UTC)"
+                          value={
+                            scan.deployment?.timestamp
+                              ? new Date(
+                                  scan.deployment.timestamp,
+                                ).toUTCString()
+                              : "UNKNOWN"
+                          }
+                        />
+                        <Value
+                          label="Owner getter"
+                          value={scan.owner ?? "No owner() value observed"}
+                        />
+                        <Value
+                          label="Proxy admin"
+                          value={scan.proxy.admin ?? "None observed"}
+                        />
+                        <Value
+                          label="PoolManager"
+                          value={scan.poolContext.manager ?? "Not configured"}
+                        />
+                        <Value
+                          label="Pools observed"
+                          value={String(scan.poolContext.pools.length)}
+                        />
+                      </div>
+                      {scan.participants.length > 0 && (
+                        <div className="table-wrap">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Participant</th>
+                                <th>Role</th>
+                                <th>How it was derived</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scan.participants.map((p) => (
+                                <tr key={p.role + p.address}>
+                                  <td>
+                                    <code title={p.address}>
+                                      {short(p.address)}
+                                    </code>
+                                  </td>
+                                  <td>
+                                    <span className="badge">{p.role}</span>
+                                  </td>
+                                  <td>{p.evidence}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </section>
                     <section>
                       <h2>Investigation indicators</h2>
@@ -434,6 +516,7 @@ export default function Workbench() {
                       />
                     </section>
                   </div>
+                  <ActivityPanel scan={scan} />
                   <section>
                     <div className="section-head">
                       <h2>Hook permissions</h2>
@@ -917,6 +1000,159 @@ function EvidenceGraph({
           </table>
         </div>
       </details>
+    </section>
+  );
+}
+function ActivityPanel({ scan }: { scan: Snapshot }) {
+  const [state, setState] = useState<{
+      activities: Record<string, unknown>[];
+      total: number;
+      counts: Record<string, number>;
+      lastIndexedBlock: string | null;
+    } | null>(null),
+    [offset, setOffset] = useState(0),
+    [error, setError] = useState(""),
+    [loading, setLoading] = useState(true);
+  const limit = 20;
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    api(
+      `hooks/${scan.chainId}/${scan.address}/activity?limit=${limit}&offset=${offset}`,
+    )
+      .then((d) => {
+        if (active) {
+          setState(d);
+          setError("");
+        }
+      })
+      .catch((e) => active && setError((e as Error).message))
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
+  }, [scan.chainId, scan.address, offset]);
+  const counts = state?.counts ?? scan.activity?.counts ?? {};
+  return (
+    <section>
+      <div className="section-head">
+        <h2>Observed activity</h2>
+        <span className="measured">
+          {scan.activity
+            ? `Window ${scan.activity.fromBlock}–${scan.activity.toBlock}`
+            : "No indexing window recorded"}
+        </span>
+      </div>
+      <p className="muted">
+        Rows are PoolManager events for pools initialized with this hook. Hook
+        callbacks do not emit their own logs, so this is not a complete record
+        of callback executions.
+      </p>
+      {error ? (
+        <div className="notice error" role="alert">
+          {error}
+        </div>
+      ) : null}
+      {scan.activity?.reason && (
+        <div className="notice">{scan.activity.reason}</div>
+      )}
+      <div className="inline">
+        {Object.keys(counts).length ? (
+          Object.entries(counts).map(([kind, n]) => (
+            <span key={kind} className="badge">
+              {kind.replaceAll("-", " ")} · {n}
+            </span>
+          ))
+        ) : (
+          <span className="muted">No indexed events in this window.</span>
+        )}
+      </div>
+      {loading && !state ? (
+        <div className="progress" role="status">
+          <span className="loading-bar" />
+          <span>Reading indexed activity…</span>
+        </div>
+      ) : state && state.activities.length ? (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Block</th>
+                <th>Kind</th>
+                <th>Event</th>
+                <th>Sender</th>
+                <th>Pool</th>
+                <th>Transaction</th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.activities.map((a) => (
+                <tr key={String(a.id)}>
+                  <td>
+                    <code>{String(a.blockNumber)}</code>
+                  </td>
+                  <td>{String(a.kind).replaceAll("-", " ")}</td>
+                  <td>{String(a.eventName ?? "—")}</td>
+                  <td>
+                    {a.sender ? (
+                      <code title={String(a.sender)}>
+                        {short(String(a.sender))}
+                      </code>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    {a.poolId ? (
+                      <code title={String(a.poolId)}>
+                        {short(String(a.poolId))}
+                      </code>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    {a.txHash ? (
+                      <code title={String(a.txHash)}>
+                        {short(String(a.txHash))}
+                      </code>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <Empty
+          title="No activity in the indexed window"
+          text="A quiet window is not proof of inactivity: older or out-of-range events exist. Rescan with a wider start block to extend the record."
+        />
+      )}
+      {state && state.total > limit && (
+        <div className="pager">
+          <button
+            className="quiet"
+            disabled={offset === 0 || loading}
+            onClick={() => setOffset(Math.max(0, offset - limit))}
+          >
+            Previous
+          </button>
+          <span className="muted">
+            {offset + 1}–{Math.min(offset + limit, state.total)} of{" "}
+            {state.total}
+          </span>
+          <button
+            className="quiet"
+            disabled={offset + limit >= state.total || loading}
+            onClick={() => setOffset(offset + limit)}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </section>
   );
 }

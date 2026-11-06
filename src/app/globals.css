@@ -1004,3 +1004,26 @@ select {
     flex-basis: 100%;
   }
 }
+
+/* Activity panel and pagination. Kept with the other workbench surfaces so a
+   long event list scrolls inside its wrapper instead of widening the page. */
+.inline {
+  flex-wrap: wrap;
+  margin: var(--space-sm) 0 var(--space-lg);
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+@media (max-width: 40rem) {
+  .fact {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2xs);
+  }
+  .pager {
+    flex-wrap: wrap;
+  }
+}

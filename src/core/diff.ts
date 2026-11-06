@@ -50,6 +50,62 @@ export function compareSnapshots(previous: Snapshot, current: Snapshot): Diff {
             : "changed",
       evidenceIds: ["proxy"],
     });
+
+  // Investigation facts. These describe what was observed, not what the
+  // contract became, so a change here means the record changed — which is
+  // exactly the kind of difference a reader must not have to go looking for.
+  // Deployment is inconclusive when either side is UNKNOWN: an unobserved
+  // deployer must never read as "the deployer changed".
+  const deploymentBefore = previous.deployment ?? null;
+  const deploymentAfter = current.deployment ?? null;
+  changes.push({
+    field: "deployment.deployer",
+    before: deploymentBefore?.deployer ?? "UNKNOWN",
+    after: deploymentAfter?.deployer ?? "UNKNOWN",
+    status:
+      deploymentBefore?.status !== "OBSERVED" ||
+      deploymentAfter?.status !== "OBSERVED"
+        ? "inconclusive"
+        : deploymentBefore?.deployer === deploymentAfter?.deployer
+          ? "unchanged"
+          : "changed",
+    evidenceIds: ["hook"],
+  });
+  changes.push({
+    field: "hookStatus",
+    before: previous.hookStatus ?? "UNKNOWN",
+    after: current.hookStatus ?? "UNKNOWN",
+    status:
+      !previous.hookStatus || !current.hookStatus
+        ? "inconclusive"
+        : previous.hookStatus === current.hookStatus
+          ? "unchanged"
+          : "changed",
+    evidenceIds: ["pool"],
+  });
+  changes.push({
+    field: "participants",
+    before: (previous.participants ?? [])
+      .map((p) => p.role + ":" + p.address)
+      .sort(),
+    after: (current.participants ?? [])
+      .map((p) => p.role + ":" + p.address)
+      .sort(),
+    status:
+      canonical(
+        (previous.participants ?? [])
+          .map((p) => p.role + ":" + p.address)
+          .sort(),
+      ) ===
+      canonical(
+        (current.participants ?? [])
+          .map((p) => p.role + ":" + p.address)
+          .sort(),
+      )
+        ? "unchanged"
+        : "changed",
+    evidenceIds: ["hook"],
+  });
   const before = new Map(previous.findings.map((f) => [f.id, f]));
   const after = new Map(current.findings.map((f) => [f.id, f]));
   const rank = { info: 0, low: 1, medium: 2, high: 3 };
