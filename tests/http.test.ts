@@ -1,5 +1,5 @@
 import { it, expect } from "vitest";
-import { protect } from "../src/server/http";
+import { protect, isSameOrigin } from "../src/server/http";
 import { createServer } from "node:http";
 import { networkFetch } from "../src/server/network";
 it("rejects a foreign origin but accepts a configured application origin", () => {
@@ -15,6 +15,59 @@ it("rejects a foreign origin but accepts a configured application origin", () =>
     protect(new Request(origin + "/api/scans", { headers: { origin } })),
   ).not.toThrow();
 });
+it("accepts same-origin requests on any port but blocks cross-site origins", () => {
+  // The deployment port is not known in advance; a production build served on
+  // a second local port is still legitimately same-origin.
+  const json = { "content-type": "application/json" };
+  expect(
+    isSameOrigin("http://127.0.0.1:3100/api/diffs", "http://127.0.0.1:3100"),
+  ).toBe(true);
+  expect(
+    isSameOrigin("http://127.0.0.1:3000/api/diffs", "http://127.0.0.1:3100"),
+  ).toBe(true);
+  expect(
+    isSameOrigin("https://klyro.example/api/diffs", "https://klyro.example"),
+  ).toBe(true);
+  // Different host or scheme is a different origin.
+  expect(
+    isSameOrigin("http://127.0.0.1:3000/api/diffs", "https://evil.invalid"),
+  ).toBe(false);
+  expect(
+    isSameOrigin("http://127.0.0.1:3000/api/diffs", "https://127.0.0.1"),
+  ).toBe(false);
+  // And the guard itself must not throw for a same-origin non-default port.
+  expect(() =>
+    protect(
+      new Request("http://127.0.0.1:3100/api/diffs", {
+        method: "POST",
+        headers: { origin: "http://127.0.0.1:3100", ...json },
+      }),
+    ),
+  ).not.toThrow();
+});
+
+it("rejects a cross-site non-JSON POST before it can mutate state", () => {
+  expect(() =>
+    protect(
+      new Request("http://127.0.0.1:3000/api/scans", {
+        method: "POST",
+        headers: {
+          origin: "https://evil.invalid",
+          "content-type": "application/json",
+        },
+      }),
+    ),
+  ).toThrow("Origin not allowed");
+  expect(() =>
+    protect(
+      new Request("http://127.0.0.1:3000/api/scans", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+      }),
+    ),
+  ).toThrow("Content-Type");
+});
+
 it("reads a bounded native HTTP response and preserves status and headers", async () => {
   const server = createServer((_request, response) => {
     response.writeHead(201, {
