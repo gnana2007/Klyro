@@ -3,6 +3,12 @@ import { request as httpsRequest } from "node:https";
 
 // Node's built-in fetch can be unavailable on managed Windows networks even
 // when native HTTPS works. Keep outbound responses bounded and abortable.
+//
+// The bound must accommodate legitimate payloads: a single 100-block
+// eth_getLogs page for Uniswap v4 Swap events measures ~2.4 MB on Ethereum, so
+// an 8 MB ceiling was rejecting ordinary PoolManager queries. 32 MB matches
+// common provider response limits while still bounding runaway responses.
+export const MAX_RESPONSE_BYTES = 32_000_000;
 export async function networkFetch(
   input: string | URL | Request,
   init: RequestInit = {},
@@ -24,7 +30,7 @@ export async function networkFetch(
         let size = 0;
         res.on("data", (chunk: Buffer) => {
           size += chunk.length;
-          if (size > 8_000_000) {
+          if (size > MAX_RESPONSE_BYTES) {
             req.destroy(new Error("Outbound response exceeds size limit"));
             return;
           }

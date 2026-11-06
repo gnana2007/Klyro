@@ -140,8 +140,10 @@ export async function confirmBlock(
  * Bounded, chunked log retrieval.
  *
  * Providers cap `eth_getLogs` ranges differently, so a single wide query is
- * unreliable. We split into chunks, and a chunk failure fails the whole call
- * rather than returning a short list that would look like "no events".
+ * unreliable. Chunk size defaults to 100 blocks: on Ethereum a 100-block Swap
+ * page measures ~2.4 MB, which stays inside provider and transport limits.
+ * A chunk failure fails the whole call rather than returning a short list that
+ * would look like "no events".
  */
 export async function getLogsBounded(
   client: KlyroClient,
@@ -163,7 +165,7 @@ export async function getLogsBounded(
       "range",
       `Log range must be 0 to ${maxRange} blocks`,
     );
-  const chunk = params.chunkSize ?? 2_000n;
+  const chunk = params.chunkSize ?? 100n;
   const out: unknown[] = [];
   for (let start = fromBlock; start <= toBlock; start += chunk + 1n) {
     const end = start + chunk > toBlock ? toBlock : start + chunk;

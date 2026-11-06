@@ -22,17 +22,17 @@ backend exists, the data is real, tests pass and limitations are documented.
 
 ## Phase 3 — Hook investigation
 
-- [ ] Discovery from real PoolManager Initialize events
-- [ ] Registration with real deployment lookup (tx, block, deployer)
-- [ ] Reject non-hook contracts explicitly
+- [x] Discovery from real PoolManager Initialize events (live-verified on Ethereum)
+- [ ] Registration with real deployment lookup (tx, block, deployer) — blocked on archive RPC for old contracts; returns UNKNOWN honestly
+- [x] Non-hook contracts reported as NOT_A_HOOK / ADDRESS_ONLY, never assumed
 - [ ] Permission / callback / source / proxy detail surfaces
 
 ## Phase 4 — Activity and participants
 
-- [ ] Event ingestion (Swap, ModifyLiquidity, Donate, Initialize, transfers)
-- [ ] Dedupe on (chainId, txHash, logIndex)
-- [ ] Participant roles with evidence for each
-- [ ] Filtering, pagination, historical retrieval
+- [x] Event ingestion: Initialize, Swap, ModifyLiquidity, Donate (live-verified)
+- [x] Dedupe on (chainId, txHash, logIndex) — live re-persist inserted 0 duplicates
+- [x] Participant roles derived only from observed senders, each with evidence
+- [x] Filtering, pagination, historical retrieval (repository layer, tested)
 
 ## Phase 5 — Evidence graph
 
@@ -80,3 +80,36 @@ backend exists, the data is real, tests pass and limitations are documented.
   definitions and did not satisfy `PublicClient`; `clientFor` now returns the
   shared `KlyroClient` type explicitly.
 - Test counts after Phase 2: 57 vitest (41 existing + 4 schema + 12 repository).
+
+## Phase 3/4 evidence (live chain, 6 Nov 2026)
+
+Investigated hook `0x322dcEc4958C14e021A9F1cD49DF11b9457968cC` on Ethereum
+through `investigateHook()`:
+
+- block 26356222, code size 10185 bytes, runtime hash
+  `0xcd772954...880b2f` (matches the earlier committed live scan).
+- permission bitmap 10444, dependencies valid, 6 flags enabled:
+  beforeInitialize, beforeAddLiquidity, beforeSwap, afterSwap,
+  beforeSwapReturnDelta, afterSwapReturnDelta.
+- proxy: direct, resolved. Source: VERIFIED, 33 Sourcify files.
+- pool association: POOL_OBSERVED (1 pool in the 200-block window,
+  pool id 0xfe1e7c3c...8aa5, currency0 0x8FDDD3B4..., fee 0, tickSpacing 200).
+- activity: Initialize + ModifyLiquidity observed at block 26356135,
+  tx 0x0b0d424a...fa558, timestamp 2026-11-06T13:33:47Z.
+- re-persisting the same investigation inserted 0 duplicate activities.
+
+Independent cross-check of one data point: receipt for that tx reports
+`logIndex` values starting at 1639, so the Initialize at logIndex 1640 is
+genuinely the second log of the transaction. `logIndex` is block-scoped, not
+transaction-array-scoped.
+
+### Blockers found and reported honestly
+
+- Deployment discovery requires archival state. The default public RPC returns
+  HTTP 403 "Archive requests require a personal token". The lookup now stops
+  on the first archive rejection and reports UNKNOWN with that reason instead
+  of probing 40 blocks or inventing a deployer. Providing an authenticated
+  archive-capable URL in `RPC_ETHEREUM` resolves it.
+- Transport response cap was 8 MB, but one 100-block Swap page is ~2.4 MB and
+  a 2,000-block page exceeds 8 MB. Cap raised to 32 MB and log chunk reduced to
+  100 blocks, both measured rather than guessed.
