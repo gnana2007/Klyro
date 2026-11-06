@@ -1,10 +1,10 @@
-# HSCAN
+# Klyro
 
 **Know what a hook does. See what changed. Verify what you trust.**
 
-HSCAN is an evidence-driven Uniswap v4 hook investigation workbench. Developers and liquidity providers can inspect capabilities, trace deterministic findings, compare historical observations and share a version-specific, independently hashable report.
+Klyro is an evidence-driven Uniswap v4 hook investigation workbench. Developers and liquidity providers can inspect capabilities, trace deterministic findings, compare historical observations and share a version-specific, independently hashable report.
 
-Hooks customize pool behavior, and their capabilities, code, upgrade paths and accounting effects need separate evidence. Existing hook scanners already exist; HSCAN combines change-aware analysis, navigable evidence and reproducible passports.
+Hooks customize pool behavior, and their capabilities, code, upgrade paths and accounting effects need separate evidence. Existing hook scanners already exist; Klyro combines change-aware analysis, navigable evidence and reproducible passports.
 
 ## Status — 6 November 2026
 
