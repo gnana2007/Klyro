@@ -1,0 +1,13 @@
+{
+  "name": "hscan", "version": "0.1.0", "private": true,
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1", "build": "next build", "start": "next start --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit", "test": "vitest run", "test:e2e": "playwright test",
+    "check": "npm run typecheck && npm test && npm run build",
+    "scan": "tsx scripts/scan.ts", "contracts:test": "node scripts/foundry.mjs test",
+    "simulation": "node scripts/simulate.mjs", "doctor": "node scripts/doctor.mjs"
+  },
+  "dependencies": { "next": "^16.0.0", "react": "^19.2.0", "react-dom": "^19.2.0", "viem": "^2.38.0", "zod": "^4.1.0", "lucide-react": "^0.468.0" },
+  "devDependencies": { "typescript": "^5.9.0", "@types/node": "^24.0.0", "@types/react": "^19.2.0", "@types/react-dom": "^19.2.0", "vitest": "^4.0.0", "tsx": "^4.20.0", "@playwright/test": "^1.56.0", "@foundry-rs/forge": "^1.4.0", "@foundry-rs/anvil": "^1.4.0", "@uniswap/v4-core": "1.0.2", "@chainlink/cre-sdk": "^1.0.0" }
+}
