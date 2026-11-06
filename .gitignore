@@ -14,6 +14,8 @@ test-results/
 playwright-report/
 .hallmark/*-screenshots/
 .hallmark/shots/
+.hallmark/entry.json
+.hallmark/salt
 .hallmark/*-report.json
 *.log
 !.gitkeep

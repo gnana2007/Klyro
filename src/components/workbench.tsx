@@ -570,6 +570,11 @@ export default function Workbench() {
             </>
           ) : (
             <section className="onboarding">
+              <p className="protocol-description">
+                Uniswap v4 hooks are contracts that customize pool operations.
+                Their permissions describe what they can do; code observations
+                and controlled execution help explain what they actually do.
+              </p>
               <h2>From an address to inspectable evidence</h2>
               <div className="steps">
                 <article>
@@ -623,6 +628,51 @@ export default function Workbench() {
                 <span className="muted">
                   Uses an actual deployment from the local simulation runner.
                 </span>
+              </div>
+              <h2 className="workflow-heading">Analysis and publication</h2>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Technology</th>
+                      <th>Role in this workflow</th>
+                      <th>Execution evidence</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Uniswap v4</td>
+                      <td>
+                        Hook permissions, PoolManager context and controlled
+                        swap accounting.
+                      </td>
+                      <td>Live reads and local fixture executions recorded.</td>
+                    </tr>
+                    <tr>
+                      <td>0G Private Computer</td>
+                      <td>
+                        Explain deterministic findings with an identifiable
+                        inference request.
+                      </td>
+                      <td>
+                        {health?.inferenceConfigured
+                          ? "Configured; inspect each scan’s actual request evidence."
+                          : "Not configured. Explanation and inference provenance are unavailable."}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Chainlink CRE</td>
+                      <td>
+                        Validate the analysis API against blockchain state and
+                        orchestrate registry publication.
+                      </td>
+                      <td>
+                        Workflow compiled. Authenticated runtime simulation
+                        pending.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </section>
           )}

@@ -13,7 +13,7 @@ Source of requirements: docs/MASTER_BUILD_PROMPT.md. No feature is complete with
 - [ ] P7: tested registry and real CRE workflow simulation, saved execution logs.
 - [ ] P8: canonical passport, independent report integrity, registry and current-version checks.
 - [ ] P9: test/build, deployment, sponsor evidence, feedback submission, human-narrated video.
-- [ ] Review diff, scan staged files for secrets, commit in phases and push main without force.
+- [x] Review diff, scan staged files for secrets, commit in phases and push main without force.
 
 ## Constraints and known blockers
 

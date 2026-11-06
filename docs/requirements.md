@@ -23,8 +23,8 @@ The complete source specification is docs/MASTER_BUILD_PROMPT.md. This tracker s
 | Hook Passport generated | Verified | Browser and API integration |
 | Report hash independently recalculated | Verified | Browser hash, canonical tests and tamper rejection |
 | Authenticity distinguished from current matching | Verified | Separate integrity/registry/current outcomes |
-| Public GitHub repository | Allocated | gnana2007/Klyro; push evidence recorded after verification |
-| README setup tested | In progress | Actual installed lockfile/build/tests; fresh clone CI follows push |
+| Public GitHub repository | Verified | main published to gnana2007/Klyro; remote commit verified |
+| README setup tested | Verified core setup | Fresh GitHub runner completed npm ci, build, all tests, CRE compilation and local simulation successfully |
 | FEEDBACK.md complete | Written | Genuine observations recorded |
 | Uniswap feedback form submitted | Pending participant | Telegram, personal ratings and terms; no receipt yet |
 | Exact integration source references | Documented | README generated references and source links |
@@ -32,7 +32,7 @@ The complete source specification is docs/MASTER_BUILD_PROMPT.md. This tracker s
 | Chainlink sponsor requirements satisfied | Incomplete | Successful authenticated CLI simulation pending |
 | EVIDENCE.md reproducible proof | Written | Actual commands and committed JSON/text evidence |
 | AI disclosure complete | Written | docs/ai/AI_DISCLOSURE.md and PROMPTS.md |
-| Meaningful incremental commits | In progress | Phase commits; git history is authoritative |
+| Meaningful incremental commits | Verified | Three initial phase commits, published without force; git history is authoritative |
 | Public accessible demo | Pending hosting | Node persistent-disk deployment required; temporary preview if available recorded separately |
 | Demo video/event requirements | Pending human | Under three minutes, >=720p, human narration, normal speed; script prepared |
 

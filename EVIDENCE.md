@@ -50,3 +50,7 @@ Browser automation stopped because the Windows tool could not verify the active 
 The Uniswap participant form and human-narrated video remain pending. Prepared feedback and a demo script are included; no submission receipt or video is fabricated.
 
 The full checklist remains in docs/requirements.md. Git history and the verified remote ref, after push, are the source of truth for publication.
+
+## Fresh-checkout CI
+
+GitHub Actions run https://github.com/gnana2007/Klyro/actions/runs/42192091905 completed successfully for c3c13341f5cef1eb43c8524718b153eb935bc964. The fresh Linux runner completed npm ci, type checks, 40 unit tests, production build, 11 Foundry tests, CRE WASM compilation, local simulation and six browser tests. Later commits are independently checked by the same workflow; the live Actions status is authoritative.

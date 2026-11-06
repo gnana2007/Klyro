@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-06",
+  "mode": "local-only",
+  "url": "http://127.0.0.1:3000",
+  "publicUrl": null,
+  "publicPublication": "blocked by automatic approval review",
+  "reason": "Specific authorization needed to expose local application and persisted reports through public trycloudflare.com URL",
+  "productionBuild": "passed",
+  "sourceBranch": "main",
+  "verifiedSourceCommit": "c3c13341f5cef1eb43c8524718b153eb935bc964"
+}
