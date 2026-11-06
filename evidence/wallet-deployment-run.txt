@@ -1,0 +1,10 @@
+npm warn install-scripts .npmrc allow-scripts setting is being ignored because --allow-scripts was passed on the command line
+npm notice run hscan@0.1.0 npx
+npm notice run tsx scripts/deploy-e2e.ts
+PREPARED {"contract":"HookRiskRegistry","chain":{"id":31337,"name":"Local Anvil","poolManager":null,"chainIdMatches":true,"blockNumber":"49"}}
+DEPLOY TX 0xa22121c7ec348f9b6e7772cf452b234d41c93de295c2a89342ec9421506495f5 receipt success block 50n
+RECORD {"id":"bfcd1d9d-0f70-400c-a2ba-5333a03be49a","chainId":31337,"address":"0x4c5859f0f772848b2d91f1d83e2fe57935348029","txHash":"0xa22121c7ec348f9b6e7772cf452b234d41c93de295c2a89342ec9421506495f5","owner":"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266","deployer":"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266","status":"deployed","blockNumber":"50","gasUsed":"532850","codeSize":2001,"verified":1,"error":null,"createdAt":"2026-11-06T16:11:00.353Z"}
+INTENT {"passportId":"dd6935ac-92f9-41b2-8bbc-01db5d0e8828","hook":"0xF63617C482020e9dC78F1AFDc79Ce184294340C4","chainId":31337,"fingerprintHash":"0x761727e5387b21d888742bf01d7acddb7cb584b1f49b1e963d8e232c92ef76bc","reportHash":"0x0282049c150d689ee9a9cb215e0b3293baeba225a1ce1843f2333913527f5644","riskLevel":0,"note":"riskLevel is a coarse provenance tag supplied by the publisher, not a safety rating. The registry stores it verbatim."}
+PUBLISHED {"id":"f818fa17-c507-4fe5-9a75-934d227d05b3","chainId":31337,"registry":"0x4c5859f0f772848b2d91f1d83e2fe57935348029","hook":"0xf63617c482020e9dc78f1afdc79ce184294340c4","reportHash":"0x0282049c150d689ee9a9cb215e0b3293baeba225a1ce1843f2333913527f5644","fingerprintHash":"0x761727e5387b21d888742bf01d7acddb7cb584b1f49b1e963d8e232c92ef76bc","riskLevel":0,"passportId":"dd6935ac-92f9-41b2-8bbc-01db5d0e8828","txHash":"0x87fed5230b74f0a5f993156dadfaa90e798d604a590a804ee1a79b2ebeb94435","publisher":"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266","status":"published","blockNumber":"51","gasUsed":"161724","error":null,"createdAt":"2026-11-06T16:11:00.995Z"}
+DUPLICATE_PUBLICATION_REVERTED true
+WROTE evidence/wallet-deployment.json

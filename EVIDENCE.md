@@ -73,6 +73,52 @@ The Uniswap participant form and human-narrated video remain pending. Prepared f
 
 The full checklist remains in docs/requirements.md. Git history and the verified remote ref, after push, are the source of truth for publication.
 
+## Third pass — wallet deployment, 0G truth check (7 November 2026)
+
+Inspected the live configuration without printing any credential. 0G model
+catalog read (HTTP 200, 125 models); the configured `ZERO_G_MODEL` is the literal
+text `id`, which is not in the catalog, and a real inference request returned
+HTTP 402 `pay_no_balance` ("Add funds to keep using services."). No inference
+result is claimed. The diagnosis was corrected so an empty account is no longer
+reported as a model problem, and `/api/ai/models` now reports account state.
+
+Failures found and fixed in this pass:
+
+- A production build on loopback refused every costly POST with HTTP 503
+  ("Set OPERATOR_TOKEN…") because the token was demanded unconditionally. It is
+  now required only for a public `APP_ORIGIN` or a public browser Origin, so a
+  single-operator local run works and a public host is still gated.
+- `/api/passports/<id>/publication-intent` returned the whole passport instead of
+  the five publish fields, producing `Cannot convert undefined to a BigInt` in
+  the publishing client. It is now matched before the plain passport route and
+  returns the flattened intent.
+- The Dockerfile never compiled the Solidity artifact, so the deploy endpoints
+  would fail in a container. It now runs `contracts:build` and copies
+  `contracts/out` into the runtime image.
+- The operator page duplicated the wallet status and left an empty band above the
+  panels; screenshot review caught it and both were removed.
+
+Executed in this pass:
+
+| Check | Actual outcome |
+|---|---|
+| TypeScript | Passed |
+| Unit/regression tests | 101 passed, 0 failed |
+| Foundry | 11 passed, 0 failed |
+| Desktop/mobile browser journeys | 12 passed, 0 failed |
+| Production build | Passed |
+| Wallet deployment on Anvil | Receipt success, codeSize 2001, `owner()` matches deployer |
+| Wallet publication on Anvil | `status: published`, gas 161712, read-back MATCH |
+| Duplicate publication | Reverted on chain (asserted) |
+| Persistence across restart | 1 deployment and 1 publication still present |
+| Registry state read live | owner and codeSize read from the chain at a named block |
+| Passport verification | integrity MATCH, authenticity REGISTRY_MATCH |
+| Chain reachability | Ethereum, Sepolia, Base and Anvil all answered |
+
+Not claimed: a public testnet deployment, authenticated CRE simulation, or any
+0G inference output. See evidence/wallet-deployment.json and
+evidence/registry-deployment.json (both chain 31337).
+
 ## Fresh-checkout CI
 
 GitHub Actions run https://github.com/gnana2007/Klyro/actions/runs/42192091905 completed successfully for c3c13341f5cef1eb43c8524718b153eb935bc964. The fresh Linux runner completed npm ci, type checks, 40 unit tests, production build, 11 Foundry tests, CRE WASM compilation, local simulation and six browser tests. Later commits are independently checked by the same workflow; the live Actions status is authoritative.

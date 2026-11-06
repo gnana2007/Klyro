@@ -27,12 +27,15 @@ The core application is implemented and locally verified. **The full hackathon c
 - Real Uniswap v4 baseline/hook fixture on Foundry and Anvil, with observed callback counts, return-delta fee, balances, receipts and gas.
 - Canonical Hook Passports, browser-side hashing, tamper rejection, registry readback and a separate current-contract match.
 - Official 0G Router integration and CRE workflow code with honest unavailable/blocked states. CRE compiled to WASM; compilation is not successful CLI simulation.
+- Wallet-signed registry deployment and report publication (`/?view=deploy`). The server prepares the exact transaction and reads the receipt back; it holds no key, and nothing is recorded as deployed or published without a confirmed chain response. Analysis stays usable with no wallet at all.
+- Scheduled hook monitoring with a durable SQLite lease, per-run history, backoff and restart recovery; monitoring survives restarts and never double scans a hook.
+- Live 0G diagnosis: the configured account returns HTTP 402 `pay_no_balance`, so inference is reported unavailable rather than fabricated. The app distinguishes empty credits from a wrong model id.
 
 A passport is a record of bounded analysis, not a safety certificate. Local fixtures are not production-hook simulations.
 
 ## Stack and architecture
 
-Next.js 16.4.5, React, TypeScript, Zod, viem, Node 24 built-in SQLite, Solidity 0.8.26, official @uniswap/v4-core 1.0.2, Foundry 1.7.1, Chainlink CRE SDK 1.23.0 and documented 0G Router APIs. Dependencies are pinned in package-lock.json. The scanner requires no wallet connection or private key.
+Next.js 16.4.5, React, TypeScript, Zod, viem, Node 24 built-in SQLite, Solidity 0.8.26, official @uniswap/v4-core 1.0.2, Foundry 1.7.1, Chainlink CRE SDK 1.23.0 and documented 0G Router APIs. Dependencies are pinned in package-lock.json. The scanner requires no wallet connection or private key. A wallet is needed only to deploy the registry or publish a report, and each of those is one explicit approval in your own wallet.
 
 Browser → typed API → block-pinned observations → deterministic rules/evidence → SQLite snapshot → relational facts (hook, activities, participants) → diff → optional 0G explanation → immutable passport → CRE validation/publication → registry. [Architecture and trust boundaries](docs/architecture.md).
 
@@ -107,11 +110,11 @@ Read [cre/README.md](cre/README.md). Install the official CLI and Bun, log in, a
 
 ## Actual deployment and transaction records
 
-[evidence/local-simulation.json](evidence/local-simulation.json) contains local chain-31337 contract addresses and swap receipts. [evidence/integration.json](evidence/integration.json) contains the actual local registry publication transaction and report hash. [evidence/proxy-upgrade.json](evidence/proxy-upgrade.json) contains an actual local upgrade. No local address or receipt is presented as a public explorer record.
+[evidence/wallet-deployment.json](evidence/wallet-deployment.json) records a real wallet-shaped deployment of HookRiskRegistry and a real `publish` transaction on local chain 31337, including block, gas, `owner()` read-back and a rejected duplicate publication. [evidence/registry-deployment.json](evidence/registry-deployment.json) is the same contract deployed by `npm run deploy:registry`. Both survive an application restart. [evidence/local-simulation.json](evidence/local-simulation.json) contains local chain-31337 contract addresses and swap receipts. [evidence/proxy-upgrade.json](evidence/proxy-upgrade.json) contains an actual local upgrade. No local address or receipt is presented as a public explorer record.
 
 ## Deployment
 
-Use a persistent Node host with a mounted SQLite volume. `npm run build` then `npm start` runs production. A Dockerfile and compose.yaml are supplied; the container configuration has not been deployment-tested here. `docker compose up --build` expects a private .env configuration. Keep the SQLite volume persistent and set APP_ORIGIN before serving the app. A stable public deployment requires an approved host; public tunnel publication is pending specific authorization.
+Use a persistent Node host with a mounted SQLite volume. `npm run build` then `npm start` runs production. The Dockerfile compiles the registry artifact inside the image and keeps `/app/data` as the volume. `docker compose up --build` expects a private .env configuration. Keep the SQLite volume persistent and set APP_ORIGIN before serving the app. [Host options: Render vs Vercel](docs/deployment-hosts.md). Vercel's filesystem is ephemeral, so SQLite history and the scheduler do not survive there.
 
 The background scan worker requires a continuously running Node process. Do not use request-terminating serverless hosting without replacing it with a durable queue. Cloudflare Worker-only hosting does not support the selected node:sqlite runtime. [Deployment details](docs/deployments.md).
 

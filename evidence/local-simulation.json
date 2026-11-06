@@ -2,17 +2,17 @@
   "scenarioId": "uniswap-v4-baseline-vs-observed-fee-v1",
   "scope": "LOCAL_FIXTURE_ONLY",
   "chainId": 31337,
-  "timestamp": "2026-11-06T14:27:51.466Z",
-  "harness": "0x68b1d87f95878fe05b998f19b66f4baba5de1aed",
-  "hook": "0x3f69146f80a57929ff176Cb7003BBb0f3B1E40c4",
-  "manager": "0x5E3d0fdE6f793B3115A9E7f5EBC195bbeeD35d6C",
-  "token0": "0x53839913417ebc7171723489F29B9B54F49b4EEA",
-  "token1": "0xa12fFA0B9f159BB4C54bce579611927Addc51610",
-  "registry": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
-  "deploymentTransaction": "0xcef2c0dfaad6af3a3d9d1bd0303b63df1b2b4f96d58df4a18d4d2a0be5c85004",
+  "timestamp": "2026-11-06T16:10:21.857Z",
+  "harness": "0x0e801d84fa97b50751dbf25036d067dcf18858bf",
+  "hook": "0xF63617C482020e9dC78F1AFDc79Ce184294340C4",
+  "manager": "0xD4eF5bFBe5925B905BD3EC0921bFe28b04ac61aE",
+  "token0": "0x7357f955700586aAA8Cfad1271354a1cCC353126",
+  "token1": "0xADb31e24bE04846754f13ad5c4AdceC36CE9415e",
+  "registry": "0x809d550fca64d94bd9f66e60752a544199cfac3d",
+  "deploymentTransaction": "0xc2dda6092c08261dd9ce22eb0119862f519b6950c6d069e3a31a18b7570e7e83",
   "baseline": {
-    "transaction": "0x7520d42ad9991609cb685e50ce5728062414a585faf7f2856d6cd2d4ef4a5c47",
-    "block": "22",
+    "transaction": "0x8ac817da4832ff624d5ef99057b1ed83c6e0f300f7018c50dcc464f1da16fc3c",
+    "block": "47",
     "gasUsed": "190950",
     "observed": {
       "hooked": false,
@@ -28,8 +28,8 @@
     }
   },
   "hooked": {
-    "transaction": "0xf9c170829cbd253295fa1b0295bb72146666c5fa2e0495ad803208907581060a",
-    "block": "23",
+    "transaction": "0x4f01aa39b6d9b4f8534c8ef0ef29bec172d5597399a180684c45c3e13f961568",
+    "block": "48",
     "gasUsed": "292341",
     "observed": {
       "hooked": true,

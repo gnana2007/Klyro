@@ -1,0 +1,13 @@
+npm notice run hscan@0.1.0 deploy:registry
+npm notice run tsx scripts/deploy-registry.ts --chain 31337
+chain      31337 Foundry
+deployer   0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+owner      0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+balance    9999915795595714362124 wei
+gas est.   532850 at 1001147397 wei = 533461390491450 wei
+sent       0x4d513230637a9e3833a1f20abfbf625998a580d5c5ab2874cdeab52ae638d9f1
+status     success block 52 gas 532850
+address    0x5f3f1dbd7b74c6b46e8c44f98792a1daf8d69154
+code size  2001 bytes
+owner()    0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (matches)
+wrote     evidence/registry-deployment.json

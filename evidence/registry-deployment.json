@@ -1,0 +1,20 @@
+{
+  "scope": "LOCAL_ANVIL_ONLY",
+  "chainId": 31337,
+  "chainName": "Foundry",
+  "address": "0x5f3f1dbd7b74c6b46e8c44f98792a1daf8d69154",
+  "transactionHash": "0x4d513230637a9e3833a1f20abfbf625998a580d5c5ab2874cdeab52ae638d9f1",
+  "blockNumber": "52",
+  "gasUsed": "532850",
+  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "owner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "ownerMatches": true,
+  "codeSize": 2001,
+  "deployedAt": "2026-11-06T16:11:06.538Z",
+  "nextSteps": [
+    "Set REGISTRY_ADDRESS and REGISTRY_CHAIN_ID in the server environment.",
+    "Authorize the CRE forwarder with setForwarder(address) as the owner.",
+    "Authorize the workflow id with setWorkflow(bytes32,bool) before CRE publication.",
+    "Verify the source on the block explorer if you want public readability."
+  ]
+}

@@ -1,3 +1,22 @@
-Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 27.32ms (26.55ms CPU time)
+npm notice run hscan@0.1.0 contracts:test
+npm notice run node scripts/foundry.mjs test
+No files changed, compilation skipped
 
-Ran 2 test suites in 29.74ms (29.12ms CPU time): 11 tests passed, 0 failed, 0 skipped (11 total tests)
+Ran 10 tests for test/Registry.t.sol:RegistryTest
+[PASS] testDuplicate() (gas: 156081)
+[PASS] testForwarderAndWorkflowRequired() (gas: 212437)
+[PASS] testGrantRevoke() (gas: 163859)
+[PASS] testInvalidInput() (gas: 21704)
+[PASS] testMalformedMetadataRejected() (gas: 67619)
+[PASS] testOwnerOnlyConfiguration() (gas: 11457)
+[PASS] testPublicationAndVersionUpdate() (gas: 275130)
+[PASS] testPublicationEmitsEvent() (gas: 156856)
+[PASS] testReceiverInterfaceDetection() (gas: 11195)
+[PASS] testUnauthorizedPublisher() (gas: 17779)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 27.07ms (41.22ms CPU time)
+
+Ran 1 test for test/Simulation.t.sol:SimulationTest
+[PASS] testBaselineVersusHookReturnDelta() (gas: 13919176)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 64.69ms (45.20ms CPU time)
+
+Ran 2 test suites in 80.46ms (91.76ms CPU time): 11 tests passed, 0 failed, 0 skipped (11 total tests)
