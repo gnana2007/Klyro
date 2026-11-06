@@ -1,0 +1,67 @@
+{
+  "observedAt": "2026-11-06T14:19:32.916Z",
+  "schema": "hscan.snapshot.v2",
+  "chainId": 1,
+  "address": "0x322dcEc4958C14e021A9F1cD49DF11b9457968cC",
+  "blockNumber": "26356361",
+  "blockHash": "0x6c2465635c98ce7e86064198b2ee2f2564543409aab0946d16ecb5eefd77af57",
+  "hookStatus": "POOL_OBSERVED",
+  "deployment": {
+    "status": "UNKNOWN",
+    "txHash": null,
+    "blockNumber": null,
+    "timestamp": null,
+    "deployer": null,
+    "method": "backward code probing (stopped)",
+    "limitations": [
+      "Deployment is located by bounded backward code probing, not by an indexer. If creation precedes the probed window it is reported UNKNOWN.",
+      "The configured RPC does not serve archival state, so historical code probing stopped early. Deployment details need an archive-capable RPC endpoint (for example an authenticated provider URL in RPC_ETHEREUM)."
+    ]
+  },
+  "activity": {
+    "status": "OBSERVED",
+    "fromBlock": "26356061",
+    "toBlock": "26356361",
+    "counts": {
+      "pool-initialized": 2,
+      "liquidity-added": 2
+    },
+    "total": 4,
+    "lastIndexedBlock": "26356361",
+    "reason": null
+  },
+  "participants": [
+    {
+      "address": "0x322dcec4958c14e021a9f1cd49df11b9457968cc",
+      "role": "liquidity-provider",
+      "evidence": "sender of 2 observed ModifyLiquidity.sender event(s)",
+      "status": "OBSERVED",
+      "activityCount": 2
+    }
+  ],
+  "permissionsEnabled": [
+    "beforeInitialize",
+    "beforeAddLiquidity",
+    "beforeSwap",
+    "afterSwap",
+    "beforeSwapReturnDelta",
+    "afterSwapReturnDelta"
+  ],
+  "permissionValid": true,
+  "findings": [
+    {
+      "id": "CAP-DELTA",
+      "severity": "info",
+      "status": "OBSERVED"
+    },
+    {
+      "id": "CALL-OPS",
+      "severity": "info",
+      "status": "ESTIMATED"
+    }
+  ],
+  "stateFingerprint": "0x28d612dd02976cb53c5e1290f24063b479092c927ced192f72a86dfd3e4dbf23",
+  "observationFingerprint": "0x9e167094e711762f05daa3af7be20851545f2bfeeb792d3ed15ae59adb76731b",
+  "evidenceNodes": 35,
+  "evidenceEdges": 29
+}

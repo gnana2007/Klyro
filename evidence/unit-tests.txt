@@ -1,14 +1,2 @@
-npm notice run hscan@0.1.0 test
-npm notice run vitest run
-(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
-  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
-Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
-
- RUN  v4.1.12 C:/Users/Gnanada/OneDrive/Documents/OneDrive/Documents/ChatGPT/ethglobal mumbai
-
-
- Test Files  3 passed (3)
-      Tests  40 passed (40)
-   Start at  14:29:07
-   Duration  1.56s (transform 305ms, setup 0ms, import 2.05s, tests 103ms, environment 1ms)
-
+[2m Test Files [22m [1m[32m7 passed[39m[22m[90m (7)[39m
+[2m      Tests [22m [1m[32m71 passed[39m[22m[90m (71)[39m

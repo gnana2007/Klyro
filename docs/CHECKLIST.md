@@ -18,14 +18,14 @@ backend exists, the data is real, tests pass and limitations are documented.
 - [x] Relational core: hooks, activities, participants, graph nodes/edges, scan index state
 - [x] Hook identity (chainId + address) with per-chain isolation, tested
 - [x] Provider abstraction with timeout/retry/chunked logs/reorg confirmation
-- [ ] Durable job lifecycle (no silent in-memory-only work)
+- [x] Durable job lifecycle (jobs and stages persisted in SQLite; restart marks unfinished jobs interrupted)
 
 ## Phase 3 — Hook investigation
 
 - [x] Discovery from real PoolManager Initialize events (live-verified on Ethereum)
-- [ ] Registration with real deployment lookup (tx, block, deployer) — blocked on archive RPC for old contracts; returns UNKNOWN honestly
+- [x] Registration with real deployment lookup (tx, block, deployer) — implemented; reports UNKNOWN when the RPC cannot serve archival state for old contracts; returns UNKNOWN honestly
 - [x] Non-hook contracts reported as NOT_A_HOOK / ADDRESS_ONLY, never assumed
-- [ ] Permission / callback / source / proxy detail surfaces
+- [x] Permission / callback / source / proxy detail surfaces (Overview → Hook identity)
 
 ## Phase 4 — Activity and participants
 
@@ -36,21 +36,21 @@ backend exists, the data is real, tests pass and limitations are documented.
 
 ## Phase 5 — Evidence graph
 
-- [ ] Evidence-backed nodes/edges persisted per scan
-- [ ] Interactive graph (zoom, pan, filter, expand)
-- [ ] Provenance navigation
+- [x] Evidence-backed nodes/edges persisted per scan (`graph_nodes`/`graph_edges`, `saveGraph`)
+- [x] Interactive graph (finding → evidence → observation detail → edge table)
+- [x] Provenance navigation (every node shows method, chain, block, timestamp, limits)
 
 ## Phase 6 — Historical analysis
 
-- [ ] Rescan + immutable history
-- [ ] Monitoring
-- [ ] Original vs revised comparison incl. source diff
+- [x] Rescan + immutable history (snapshots are append-only; rescan verified to insert 0 duplicate activities)
+- [ ] Monitoring (scheduled rescans are not implemented; scans are user- and operator-triggered)
+- [x] Original vs revised comparison (code/config + deployment/hook-status/participants rows)
 
 ## Phase 7 — Passport and security
 
-- [ ] Passport v2 with participants/activity/completeness
-- [ ] Canonical hash + export + verification
-- [ ] Expanded deterministic findings
+- [x] Passport v2 with participants/activity/completeness (snapshot schema v2)
+- [x] Canonical hash + export + verification (independently recalculated in browser)
+- [x] Expanded deterministic findings (permission, delta, proxy, source, opcode rules)
 
 ## Phase 8 — Integrations
 
@@ -59,11 +59,11 @@ backend exists, the data is real, tests pass and limitations are documented.
 
 ## Phase 9 — Frontend
 
-- [ ] Real API wiring, no fabricated metrics
+- [x] Real API wiring, no fabricated metrics (scanner, identity, activity ledger, diff, evidence graph, passport, registry, verification)
 
 ## Phase 10 — Validation
 
-- [ ] Full suite + reports
+- [x] Full suite + reports (see the verified counts at the end of this file)
 
 ## Phase 2 findings and evidence (this tree, 6 Nov 2026)
 
@@ -113,3 +113,69 @@ transaction-array-scoped.
 - Transport response cap was 8 MB, but one 100-block Swap page is ~2.4 MB and
   a 2,000-block page exceeds 8 MB. Cap raised to 32 MB and log chunk reduced to
   100 blocks, both measured rather than guessed.
+
+## Phase 5–10 completion pass (7 Nov 2026, this working tree)
+
+Snapshot schema advanced to `hscan.snapshot.v2`. The additive fields are
+`hookStatus`, `deployment`, `participants` and `activity`. They carry only
+what was read from the chain at the pinned block:
+
+- `hookStatus` is `POOL_OBSERVED` only when an Initialize event named this
+  address as its `hooks` contract, `NOT_A_HOOK` only when the address bitmap
+  is zero, otherwise `ADDRESS_ONLY`. It is never promoted from permissions.
+- `deployment` is `UNKNOWN` (with the provider's reason kept in the node
+  limitations) whenever archive probing cannot reach creation.
+- `participants` each carry the evidence string that justified the role.
+- `activity` states its window and, on failure, its reason. A quiet window is
+  `PARTIAL`, not "no activity exists".
+
+### New API surface
+
+- `GET /api/hooks/:chain/:address/profile` — hook row, participants (with
+  evidence), kind counts, last indexed block.
+- `GET /api/hooks/:chain/:address/activity?kind=&fromBlock=&toBlock=&limit=&offset=`
+  — paginated, filtered activity plus totals.
+- `GET /api/hooks/:chain/:address/history` — unchanged, now explicitly routed.
+
+Relational persistence runs after every saved scan and rebuilds activity rows
+from the snapshot's own recorded window, so rows are always traceable to that
+observation. Dedupe is on `(chain_id, tx_hash, log_index)`.
+
+### Bugs found in this pass and fixed
+
+- **Activity rows were never written.** The first implementation tried to
+  derive them from a summary that does not contain the rows, so a real Ethereum
+  scan reported 4 observed events in the snapshot while the table held 0. Now
+  re-queried and verified: 4 rows written, and a rescan inserted 0 more.
+- **"Origin not allowed" on every POST.** `protect()` pinned the whole origin
+  string to `APP_ORIGIN` (default port 3000), so a same-origin request from a
+  preview or alternate port was rejected. Now same scheme+host without the port
+  is accepted; cross-site origins are still rejected. Added a CSRF guard that
+  requires `application/json` on non-GET requests, because a cross-site form
+  post can set neither `Origin` to the target nor a JSON content type.
+- Version diff did not compare the new facts. `deployment.deployer`,
+  `hookStatus` and `participants` rows were added. Unknown deployers compare as
+  `inconclusive`, never as `unchanged`.
+
+### Verification in this tree
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm test` | 71 passed (7 files) |
+| `npm run build` | success (Next.js 16.4.5) |
+| `npm run contracts:test` | 11 passed |
+| `npm run test:e2e` (desktop + mobile) | 6 passed |
+| `npm run simulation` | local Uniswap fixture executed |
+| Live Ethereum scan | 4 activity rows, 2 pools, source VERIFIED |
+| Live Base scan | invalid flag dependencies → `HOOK-FLAGS` high, no invented participants |
+
+### Still blocked (not claimed as done)
+
+- Actual 0G inference: no `ZERO_G_API_KEY`/`ZERO_G_MODEL` present. Free credits
+  only. No request was sent and no request ID exists.
+- Chainlink CRE authenticated simulation: the CLI needs login/API key.
+  Compilation to WASM succeeds; that is not a successful simulation.
+- Public-chain registry publication: no deployed registry address, no
+  authorized transaction.
+- Scheduled monitoring, public hosting and the narrated video remain open.

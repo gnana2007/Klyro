@@ -6,12 +6,12 @@ Klyro is an evidence-driven Uniswap v4 hook investigation workbench. Developers 
 
 Hooks customize pool behavior, and their capabilities, code, upgrade paths and accounting effects need separate evidence. Existing hook scanners already exist; Klyro combines change-aware analysis, navigable evidence and reproducible passports.
 
-## Status — 6 November 2026
+## Status — 7 November 2026
 
 The core application is implemented and locally verified. **The full hackathon checklist is not complete.** Actual 0G inference, an authenticated CRE CLI simulation, the participant feedback submission, a human-narrated video and public hosting are outstanding. See [the complete requirement tracker](docs/requirements.md) and [execution evidence](EVIDENCE.md). There are no fabricated IDs, transactions, sponsor successes or screenshots.
 
 - Live local application: [http://127.0.0.1:3000](http://127.0.0.1:3000) while the local server is running.
-- Live backend check: [http://127.0.0.1:3000/api/health/live](http://127.0.0.1:3000/api/health/live). On this host, Ethereum, Sepolia, Base and local Anvil returned current blocks after the native HTTP transport fix. A new Ethereum scan completed at block 26355237 with runtime-matched source and four observed pool associations. [Live backend plan and key setup](docs/backend-live-plan.md).
+- Live backend check: [http://127.0.0.1:3000/api/health/live](http://127.0.0.1:3000/api/health/live). On this host, Ethereum, Sepolia, Base and local Anvil returned current blocks after the native HTTP transport fix. The latest Ethereum scan completed at block 26356361 with runtime-matched source, two observed pools and four persisted activity rows that survive a rescan without duplication. A Base scan of `0xb200…ce01` demonstrates the honest-unknown path: no pool in the window, invalid flag dependencies reported as `HOOK-FLAGS`, and zero participants rather than invented ones. [Live backend plan and key setup](docs/backend-live-plan.md).
 - Public hosted demo: not published. Automatic approval review rejected a public tunnel; specific approval is pending.
 - Demo video: pending human recording. [Under-three-minute script](docs/demo-script.md).
 
@@ -22,6 +22,8 @@ The core application is implemented and locally verified. **The full hackathon c
 - Deterministic evidence-linked findings and a documented attention index; AI never defines risk scores or changes findings.
 - SQLite scan history, rescan comparison, proxy-aware implementation changes and finding reassessment.
 - Interactive evidence navigation with method, block, timestamp, raw observation and limitations.
+- Hook identity panel: hook status derived from PoolManager `Initialize` events, bounded deployment lookup, owner getter, proxy admin and manager.
+- Participant ledger where every role carries the evidence string that justified it, and a paginated activity table persisted in SQLite and filtered by kind, block range and address.
 - Real Uniswap v4 baseline/hook fixture on Foundry and Anvil, with observed callback counts, return-delta fee, balances, receipts and gas.
 - Canonical Hook Passports, browser-side hashing, tamper rejection, registry readback and a separate current-contract match.
 - Official 0G Router integration and CRE workflow code with honest unavailable/blocked states. CRE compiled to WASM; compilation is not successful CLI simulation.
@@ -32,7 +34,9 @@ A passport is a record of bounded analysis, not a safety certificate. Local fixt
 
 Next.js 16.4.5, React, TypeScript, Zod, viem, Node 24 built-in SQLite, Solidity 0.8.26, official @uniswap/v4-core 1.0.2, Foundry 1.7.1, Chainlink CRE SDK 1.23.0 and documented 0G Router APIs. Dependencies are pinned in package-lock.json. The scanner requires no wallet connection or private key.
 
-Browser → typed API → block-pinned observations → deterministic rules/evidence → SQLite snapshot → diff → optional 0G explanation → immutable passport → CRE validation/publication → registry. [Architecture and trust boundaries](docs/architecture.md).
+Browser → typed API → block-pinned observations → deterministic rules/evidence → SQLite snapshot → relational facts (hook, activities, participants) → diff → optional 0G explanation → immutable passport → CRE validation/publication → registry. [Architecture and trust boundaries](docs/architecture.md).
+
+Read-only API used by the workbench: `GET /api/health`, `GET /api/health/live`, `GET /api/scans`, `GET /api/scans/:id`, `GET /api/hooks/:chain/:address/history|profile|activity`, `GET /api/evidence/:scanId`, `GET /api/passports[/:id]`, `GET /api/verify/:passportId`, `GET /api/registry`; `POST /api/scans`, `/api/diffs`, `/api/ai/explain`, `/api/passports`, `/api/verify/:id`. Non-GET requests must send `application/json` and, when an `Origin` header is present, must be same-origin or a configured application origin.
 
 ## Setup
 

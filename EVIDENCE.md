@@ -13,12 +13,12 @@ Only actual executions belong here. Integration code and integration success are
 
 ## Verification
 
-All results below were executed locally on 6 November 2026. No production mocks were used.
+All results below were executed locally on 6–7 November 2026. No production mocks were used.
 
 | Check | Actual outcome | Reproduce / proof |
 |---|---|---|
 | TypeScript application | Passed | npm run typecheck; production build type-check |
-| Unit/regression tests | 40 passed, 0 failed | npm test; evidence/unit-tests.txt |
+| Unit/regression tests | 71 passed, 0 failed | npm test; evidence/unit-tests.txt |
 | Foundry | 11 passed, 0 failed | npm run contracts:test -- -vv; evidence/foundry-tests.txt |
 | Desktop/mobile browser journeys | 6 passed, 0 failed | npm run test:e2e; evidence/browser-tests.txt |
 | Production build | Passed | npm run build; evidence/production-build.txt |
@@ -28,10 +28,32 @@ All results below were executed locally on 6 November 2026. No production mocks 
 | CRE CLI simulation | BLOCKED, not successful | evidence/cre-attempt.txt: login/API key required; user chose to leave this blocked |
 | Real 0G inference | NOT EXECUTED | No API key/model configured; free credits only authorized |
 | Uniswap live Ethereum scan | Passed, source verified by runtime match | evidence/live-hook-scan.json: hook 0x322dcEc4958C14e021A9F1cD49DF11b9457968cC, block 26354677, six pool associations |
+| Live investigation facts (Ethereum) | 4 activities, 2 pools, hookStatus POOL_OBSERVED | evidence/investigation-facts.json, block 26356361 |
+| Activity persistence and dedupe | 4 rows written; rescan inserted 0 | GET /api/hooks/1/…/activity before and after rescan |
+| Live Base scan (honest-unknown path) | Passed | 0xb200…ce01: no pool in window → ADDRESS_ONLY, HOOK-FLAGS high, zero participants |
 | Actual Uniswap local swaps | Passed | evidence/local-simulation.json: baseline 996900609009281774, hook 986931602919188957, fee 9969006090092817 |
 | Full local API workflow | Passed | evidence/integration.json: actual scan/rescan, pool association, history, diff, hash, tamper rejection, registry receipt and readback |
 | Real proxy upgrade observation | Passed locally | evidence/proxy-upgrade.json: same runtime code, different implementation addresses/hashes |
 | Historical authenticity/current check | Both MATCH locally | evidence/verification.json; values are checked against the configured local registry, not a public chain |
+
+## Second pass — investigation surfaces (7 November 2026)
+
+Implemented: snapshot v2 investigation facts, hook identity and participant
+panels, a paginated activity ledger backed by SQLite, and diff rows for the new
+facts. Verified `npm run typecheck`, 71 unit tests, 11 Foundry tests, production
+build and 6 desktop/mobile browser journeys against the production server.
+
+Failures found and fixed in this pass:
+
+- Activity rows were never written to SQLite although the snapshot reported 4
+  observed events (count read 0). The rows are now re-queried from the
+  snapshot's recorded window; verified 4 written and 0 added on rescan.
+- Every POST from the app was rejected with "Origin not allowed" whenever the
+  app was served on a port other than APP_ORIGIN. Same scheme+host now matches
+  on any port; a CSRF content-type requirement was added at the same time.
+- The version diff ignored the new facts. Added `deployment.deployer`,
+  `hookStatus` and `participants`, with UNKNOWN deployers comparing as
+  `inconclusive`.
 
 ## Failures found and fixed
 
