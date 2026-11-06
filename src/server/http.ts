@@ -135,6 +135,28 @@ export async function body(request: Request) {
 export function failure(error: unknown) {
   if (error instanceof HttpError)
     return Response.json({ error: error.message }, { status: error.status });
+  // Storage failures used to fall through to the generic 400 below, which hid
+  // the real cause (a read-only filesystem, an unwritable volume) behind
+  // "Operation failed". A storage problem is a server-side gap: report 503 and
+  // the actionable reason, including the path that could not be opened.
+  //
+  // The check is on `name` rather than `instanceof` because the class can be
+  // duplicated across bundles when a route handler and its dependency are
+  // compiled into different chunks, and a lost prototype would turn a server
+  // fault back into a 400.
+  if (
+    error instanceof Error &&
+    error.name === "StorageError" &&
+    (error as { status?: unknown }).status === 503
+  )
+    return Response.json(
+      { error: error.message, code: "STORAGE_UNAVAILABLE" },
+      { status: 503 },
+    );
+  // Any other unexpected server-side failure is still not the caller's fault.
+  // Answering 400 made a broken deployment look like a malformed request, so
+  // the distinction is now explicit: a thrown programming or environment error
+  // is 500 with its message, a validation problem is 400.
   if (error instanceof z.ZodError)
     return Response.json(
       {
@@ -167,9 +189,18 @@ export function failure(error: unknown) {
       },
       { status: 502 },
     );
-  const safe =
-    /not found|Compare snapshots|Current block|Unsupported|must be/i.test(message)
-      ? message
-      : "Operation failed. Check the input and server configuration.";
-  return Response.json({ error: safe }, { status: 400 });
+  if (/not found|Compare snapshots|Current block|Unsupported|must be/i.test(message))
+    return Response.json({ error: message }, { status: 400 });
+  // The raw message can name an internal path or endpoint. It is included
+  // because an unactionable "something failed" is what hid this bug in the
+  // first place, but it is bounded.
+  return Response.json(
+    {
+      error:
+        "Server error: " +
+        (message ? message.slice(0, 300) : "an unexpected failure occurred"),
+      code: "INTERNAL_ERROR",
+    },
+    { status: 500 },
+  );
 }

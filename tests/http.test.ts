@@ -158,3 +158,36 @@ it("requires an operator token only when the app is reachable publicly", async (
     process.env = saved;
   }
 });
+/**
+ * Regression: a storage failure used to be flattened into HTTP 400 "Operation
+ * failed", which is what the production deployment answered on /api/health and
+ * /api/scans. A server-side fault must be reported as one, with its reason.
+ */
+it("reports a storage failure as 503 with its reason, never as a 400", async () => {
+  const { failure } = await import("../src/server/http");
+  const { StorageError } = await import("../src/server/db");
+  const error = new StorageError(
+    "SQLite could not be opened at /var/task/data/klyro.sqlite (attempt to write a readonly database).",
+  );
+  const response = failure(error);
+  expect(response.status).toBe(503);
+  const payload = await response.json();
+  expect(payload.code).toBe("STORAGE_UNAVAILABLE");
+  expect(payload.error).toContain("readonly database");
+  expect(payload.error).not.toBe(
+    "Operation failed. Check the input and server configuration.",
+  );
+});
+
+it("keeps a validation failure a 400 and never hides an unexpected error as one", async () => {
+  const { failure, HttpError } = await import("../src/server/http");
+  const validation = failure(new HttpError(400, "Unsupported chain"));
+  expect(validation.status).toBe(400);
+  expect((await validation.json()).error).toBe("Unsupported chain");
+
+  const unexpected = failure(new Error("ENOENT: fixture missing"));
+  expect(unexpected.status).toBe(500);
+  const payload = await unexpected.json();
+  expect(payload.code).toBe("INTERNAL_ERROR");
+  expect(payload.error).toContain("ENOENT");
+});

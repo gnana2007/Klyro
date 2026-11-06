@@ -100,18 +100,71 @@ export async function GET(request: Request, context: Context) {
       );
       return Response.json({ networks: checks });
     }
-    if (p[0] === "health")
+    if (p[0] === "health") {
+      // Health must answer even when storage is broken: the whole point of the
+      // endpoint is to say what is working. It reports storage honestly rather
+      // than failing the request, so a monitor can distinguish "the app is down"
+      // from "the disk is not persistent".
+      const location = db.databaseLocation();
+      let storage: {
+        ok: boolean;
+        path: string | null;
+        durable: boolean;
+        note: string;
+      } = { ok: false, path: location.path, durable: location.durable, note: location.reason };
+      try {
+        const handle = db.database();
+        handle.prepare("SELECT 1").get();
+        const active = db.activePath();
+        storage = {
+          ok: true,
+          path: active,
+          durable: location.durable && active === location.path,
+          note: db.lastDatabaseError() ?? location.reason,
+        };
+      } catch (error) {
+        storage = {
+          ...storage,
+          ok: false,
+          note:
+            error instanceof Error
+              ? error.message
+              : "Storage is unavailable",
+        };
+      }
       return Response.json({
-        status: "ok",
-        database: !!db.database(),
+        status: storage.ok ? "ok" : "degraded",
+        database: storage.ok,
+        storage,
         networks: NETWORKS.map(({ id, name }) => ({ id, name })),
         inferenceConfigured:
           !!process.env.ZERO_G_API_KEY && !!process.env.ZERO_G_MODEL,
+        // The explainer is optional. This flag exists so the UI can offer it
+        // when it is genuinely usable, never so it can gate a scan.
+        aiOptional: true,
         freeCreditsConfirmed:
           process.env.ZERO_G_FREE_CREDITS_CONFIRMED === "true",
         registryConfigured: !!process.env.REGISTRY_ADDRESS,
       });
-    if (p[0] === "scans" && !p[1]) return Response.json(db.recent());
+    }
+    if (p[0] === "scans" && !p[1]) {
+      // Scan history. The shape stays `{ scans, unreadable }` so a client can
+      // tell an empty history from a corrupted one instead of seeing an empty
+      // array that looks like success.
+      const history = db.recent();
+      return Response.json({
+        scans: history.scans,
+        unreadable: history.unreadable,
+        storage: db.databaseLocation().durable
+          ? "durable"
+          : "ephemeral",
+        notice:
+          history.unreadable.length > 0
+            ? history.unreadable.length +
+              " stored snapshot(s) could not be parsed and were omitted."
+            : null,
+      });
+    }
     if (p[0] === "fixture") {
       try {
         return Response.json(
@@ -353,7 +406,7 @@ export async function POST(request: Request, context: Context) {
             onStage: (stage) => db.stageJob(id, "running", stage),
           });
           if (input.explain) {
-            db.stageJob(id, "running", "Requesting 0G explanation");
+            db.stageJob(id, "running", "Requesting the optional AI explanation");
             await explain(s, null);
             db.stageJob(id, "complete", "Scan complete");
           }

@@ -84,9 +84,13 @@ export default function Workbench() {
     [passport, setPassport] = useState<string | null>(null),
     [fixtureBusy, setFixtureBusy] = useState(false),
     [withAI, setWithAI] = useState(true),
+    [historyError, setHistoryError] = useState(""),
+    [healthError, setHealthError] = useState(""),
     [health, setHealth] = useState<{
+      status?: string;
       inferenceConfigured: boolean;
       freeCreditsConfirmed: boolean;
+      storage?: { ok: boolean; durable: boolean; note: string };
     } | null>(null);
   useEffect(() => {
     const q = new URLSearchParams(location.search);
@@ -94,14 +98,30 @@ export default function Workbench() {
     setTab(q.get("tab") || "overview");
     const id = q.get("scan");
     if (id) setJobId(id);
+    // Scan history answers `{ scans, unreadable, storage, notice }`. Reading the
+    // envelope here (rather than assuming an array) keeps an empty history and
+    // a degraded one from being reported the same way.
     api("scans")
-      .then(setScans)
-      .catch(() => {});
+      .then((value) => setScans(Array.isArray(value) ? value : value.scans || []))
+      .catch((e) => setHistoryError((e as Error).message));
     api("health")
       .then(setHealth)
-      .catch(() => {});
+      .catch((e) => setHealthError((e as Error).message));
   }, []);
+  // The Operate view needs the same wallet state the header shows. The header
+  // publishes it through a window event because it is rendered by the root
+  // layout, outside this component tree.
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
+  useEffect(() => {
+    const read = () =>
+      setWallet(
+        (window as unknown as { klyroWallet?: WalletInfo | null }).klyroWallet ??
+          null,
+      );
+    read();
+    window.addEventListener("klyro:wallet", read);
+    return () => window.removeEventListener("klyro:wallet", read);
+  }, []);
   useEffect(() => {
     if (!jobId) return;
     let active = true;
@@ -123,7 +143,11 @@ export default function Workbench() {
           setBusy(false);
         } else if (j.status === "complete") {
           setBusy(false);
-          api("scans").then(setScans);
+          api("scans")
+            .then((value) =>
+              setScans(Array.isArray(value) ? value : value.scans || []),
+            )
+            .catch(() => {});
         } else if (count++ < 180) timer = setTimeout(poll, 1000);
         else {
           setBusy(false);
@@ -158,6 +182,8 @@ export default function Workbench() {
     setPassport(null);
     setScan(null);
     try {
+      // `explain` is only ever true when an AI provider is configured and
+      // funded. The scan itself never waits on an explainer.
       const j = await api("scans", {
         address,
         chainId,
@@ -189,7 +215,7 @@ export default function Workbench() {
   async function explainNow() {
     if (!scan) return;
     setBusy(true);
-    setStage("Requesting 0G inference");
+    setStage("Requesting the optional AI explanation");
     try {
       setInference(await api("ai/explain", { scanId: scan.id }));
     } catch (e) {
@@ -209,6 +235,11 @@ export default function Workbench() {
               <p>Every scan retains its observed block and evidence.</p>
             </div>
           </div>
+          {historyError && (
+            <p className="notice error" role="alert">
+              Scan history could not be loaded: {historyError}
+            </p>
+          )}
           <History scans={scans} />
         </>
       ) : view === "registry" ? (
@@ -316,14 +347,16 @@ export default function Workbench() {
                   aria-describedby="inference-status"
                   onChange={(e) => setWithAI(e.target.checked)}
                 />
-                Include 0G evidence explanation
+                Include AI explanation (optional)
               </label>
               <span id="inference-status">
-                {health?.inferenceConfigured
-                  ? health.freeCreditsConfirmed
-                    ? "Existing free credits confirmed"
-                    : "Free-credit confirmation required"
-                  : "0G not configured; deterministic analysis remains available"}
+                {healthError
+                  ? "Health check failed; scanning still works. " + healthError
+                  : health?.inferenceConfigured
+                    ? health.freeCreditsConfirmed
+                      ? "AI explainer configured with existing free credits"
+                      : "AI explainer configured; free-credit confirmation required"
+                    : "No AI explainer configured. The deterministic analysis is complete without it."}
               </span>
             </div>
           </form>
@@ -376,7 +409,7 @@ export default function Workbench() {
                   ["evidence", "Evidence graph"],
                   ["diff", "Behavior diff"],
                   ["simulation", "Simulation"],
-                  ["explanation", "0G explanation"],
+                  ["explanation", "AI explanation"],
                   ["passport", "Hook passport"],
                 ].map(([id, label]) => (
                   <button
@@ -598,8 +631,8 @@ export default function Workbench() {
                   </div>
                   {!inference ? (
                     <Empty
-                      title="No inference recorded"
-                      text="0G explains deterministic findings using their exact evidence IDs. Configure existing free credits to enable it."
+                      title="No explanation requested"
+                      text="An optional AI explainer can restate the deterministic findings using their exact evidence IDs. It is never required: findings, evidence, hashes and the passport do not depend on it. When no provider is configured, nothing is generated."
                     />
                   ) : (
                     <>
@@ -617,7 +650,7 @@ export default function Workbench() {
                       </div>
                       <div className="facts">
                         <Value
-                          label="Actual 0G request ID"
+                          label="AI provider request ID"
                           value={
                             inference.requestId ?? "No request ID returned"
                           }
@@ -767,7 +800,7 @@ export default function Workbench() {
                       <td>Live reads and local fixture executions recorded.</td>
                     </tr>
                     <tr>
-                      <td>0G Private Computer</td>
+                      <td>AI explainer (optional)</td>
                       <td>
                         Explain deterministic findings with an identifiable
                         inference request.

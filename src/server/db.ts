@@ -1,6 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, join } from "node:path";
+import { tmpdir } from "node:os";
 import type { Snapshot, AIResult, PassportReport } from "../core/types";
 import { MIGRATIONS } from "./schema";
 type Job = {
@@ -14,23 +15,142 @@ type Job = {
   snapshot?: Snapshot;
 };
 let db: DatabaseSync;
+let openError: string | null = null;
+
+/**
+ * Where the SQLite file lives.
+ *
+ * A serverless host (Vercel) mounts the deployment read-only and gives a
+ * function only `/tmp` to write to. Opening `./data/klyro.sqlite` there throws
+ * `ERR_SQLITE_ERROR`, which used to surface as a generic HTTP 400 on every
+ * endpoint that touched the database — including `/api/health`, so the app
+ * looked broken even when the chain reads were fine.
+ *
+ * When DATABASE_PATH is unset the default therefore follows the platform: the
+ * project directory on a normal host, `/tmp` under Vercel, and an in-memory
+ * database as a last resort so read-only analysis keeps working. `/tmp` is
+ * per-instance and does not persist, so it is reported as non-durable rather
+ * than presented as real storage.
+ */
+export function databaseLocation(): {
+  path: string;
+  durable: boolean;
+  reason: string;
+} {
+  const configured = process.env.DATABASE_PATH?.trim();
+  if (configured)
+    return {
+      path: configured,
+      durable: true,
+      reason: "DATABASE_PATH is set",
+    };
+  if (process.env.VERCEL)
+    return {
+      path: join(tmpdir(), "klyro.sqlite"),
+      durable: false,
+      reason:
+        "DATABASE_PATH is unset on Vercel; /tmp is writable but does not persist across deployments",
+    };
+  return {
+    path: "./data/klyro.sqlite",
+    durable: true,
+    reason: "default project-local path",
+  };
+}
+
+export function lastDatabaseError() {
+  return openError;
+}
+
+/** Where the live connection actually points, after any fallback. */
+let openedAt: string | null = null;
+
+/**
+ * A serverless function has no persistent disk, so a missing `DATABASE_PATH`
+ * must not be a hard failure: read-only analysis has to keep working. On such a
+ * host an unwritable deployment root falls back to a per-instance file in the
+ * temporary directory, which is reported as non-durable rather than pretended
+ * to be real storage.
+ */
+function ephemeralFallback(): string {
+  return join(tmpdir(), "klyro-" + process.pid + ".sqlite");
+}
+
+function open(path: string): DatabaseSync {
+  if (path !== ":memory:")
+    mkdirSync(dirname(resolve(/* turbopackIgnore: true */ path)), {
+      recursive: true,
+    });
+  const handle = new DatabaseSync(path);
+  handle.exec(
+    "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;",
+  );
+  migrate(handle);
+  handle.exec(
+    "UPDATE jobs SET status='failed',stage='Interrupted',error='Server restarted during scan; retry this live observation.' WHERE status IN ('queued','running')",
+  );
+  return handle;
+}
+
 export function database() {
   if (!db) {
-    const path = process.env.DATABASE_PATH || "./data/hscan.sqlite";
-    if (path !== ":memory:")
-      mkdirSync(dirname(resolve(/* turbopackIgnore: true */ path)), {
-        recursive: true,
-      });
-    db = new DatabaseSync(path);
-    db.exec(
-      "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;",
-    );
-    migrate(db);
-    db.exec(
-      "UPDATE jobs SET status='failed',stage='Interrupted',error='Server restarted during scan; retry this live observation.' WHERE status IN ('queued','running')",
-    );
+    const { path } = databaseLocation();
+    try {
+      db = open(path);
+      openedAt = path;
+      openError = null;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      // A managed host gives no writable project directory. Retry against a
+      // location the platform does provide, and say plainly that the data is
+      // per-instance. Never silently succeed as if the configured path worked.
+      if (path !== ":memory:" && process.env.VERCEL) {
+        try {
+          const fallback = ephemeralFallback();
+          db = open(fallback);
+          openedAt = fallback;
+          openError =
+            "SQLite could not be opened at " +
+            path +
+            " (" +
+            reason +
+            "). Running on an ephemeral database at " +
+            fallback +
+            "; history does not persist. Set DATABASE_PATH to a persistent volume to keep it.";
+          return db;
+        } catch {
+          // Fall through to the hard failure below: analysis needs somewhere to
+          // record what it observed.
+        }
+      }
+      // Report the real reason instead of failing silently. A read-only or
+      // missing volume is an operator problem, and the message says so.
+      openError =
+        "SQLite could not be opened at " +
+        path +
+        " (" +
+        reason +
+        "). Set DATABASE_PATH to a writable, persistent location.";
+      const failure = new StorageError(openError);
+      openError = failure.message;
+      throw failure;
+    }
   }
   return db;
+}
+
+/** The path the live connection uses, which may differ from the configured one. */
+export function activePath() {
+  return openedAt;
+}
+
+/** A storage failure the HTTP layer can report truthfully as HTTP 503. */
+export class StorageError extends Error {
+  readonly status = 503;
+  constructor(message: string) {
+    super(message);
+    this.name = "StorageError";
+  }
 }
 // Applies every migration newer than the recorded maximum version. The marker
 // table already exists in databases produced by the previous build, so those
@@ -170,10 +290,22 @@ export function history(chainId: number, address: string) {
     .map((r) => JSON.parse(r.body as string) as Snapshot);
 }
 export function recent() {
-  return database()
-    .prepare("SELECT body FROM snapshots ORDER BY created_at DESC LIMIT 30")
-    .all()
-    .map((r) => JSON.parse(r.body as string) as Snapshot);
+  // Skip a row that cannot be read back instead of failing the whole history:
+  // one corrupted snapshot must not hide the other observations. The count of
+  // unreadable rows is reported by the caller, never invented.
+  const rows = database()
+    .prepare("SELECT id, body FROM snapshots ORDER BY created_at DESC LIMIT 30")
+    .all();
+  const scans: Snapshot[] = [];
+  const unreadable: string[] = [];
+  for (const row of rows) {
+    try {
+      scans.push(JSON.parse(row.body as string) as Snapshot);
+    } catch {
+      unreadable.push(String(row.id));
+    }
+  }
+  return { scans, unreadable };
 }
 export function saveAI(r: AIResult) {
   database()
