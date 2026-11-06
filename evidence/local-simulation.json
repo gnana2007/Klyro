@@ -1,0 +1,56 @@
+{
+  "scenarioId": "uniswap-v4-baseline-vs-observed-fee-v1",
+  "scope": "LOCAL_FIXTURE_ONLY",
+  "chainId": 31337,
+  "timestamp": "2026-11-06T08:57:22.910Z",
+  "harness": "0xb7f8bc63bbcad18155201308c8f3540b07f84f5e",
+  "hook": "0x59Fe31217B0b670c0288FBe199Bc43d7bAaa00c4",
+  "manager": "0x8dAF17A20c9DBA35f005b6324F493785D239719d",
+  "token0": "0x3Ca8f9C04c7e3E1624Ac2008F92f6F366A869444",
+  "token1": "0x7e2d5FCC5E02cBF2b9f860052C0226104E23F9c7",
+  "registry": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+  "deploymentTransaction": "0x8bd78fd51d2e0f788af2453cdca7926a3dc1d4121b7a288a34b3015b50d8e693",
+  "baseline": {
+    "transaction": "0x50696bac24e5494cb08706344f12c3b1956b01cc5ab8ae2cf169d2880b4dc933",
+    "block": "15",
+    "gasUsed": "190950",
+    "observed": {
+      "hooked": false,
+      "inputAmount": "1000000000000000000",
+      "outputAmount": "996900609009281774",
+      "balance0Before": "999999880365244789806748020",
+      "balance0After": "999999879365244789806748020",
+      "balance1Before": "999999880365244789806748020",
+      "balance1After": "999999881362145398816029794",
+      "delta0": "-1000000000000000000",
+      "delta1": "996900609009281774",
+      "gasUsed": "122087"
+    }
+  },
+  "hooked": {
+    "transaction": "0x2b589ee20530d65bf06131a0119fce936b2c1e0cc34e149dc6f9fec618a1baf7",
+    "block": "16",
+    "gasUsed": "292341",
+    "observed": {
+      "hooked": true,
+      "inputAmount": "1000000000000000000",
+      "outputAmount": "986931602919188957",
+      "balance0Before": "999999879365244789806748020",
+      "balance0After": "999999878365244789806748020",
+      "balance1Before": "999999881362145398816029794",
+      "balance1After": "999999882349077001735218751",
+      "delta0": "-1000000000000000000",
+      "delta1": "986931602919188957",
+      "gasUsed": "223478"
+    }
+  },
+  "fee": "9969006090092817",
+  "beforeCalls": "1",
+  "afterCalls": "1",
+  "revertReason": null,
+  "limitations": [
+    "Controlled local test contract; not arbitrary production hook execution.",
+    "One exact-input zero-for-one scenario and one-percent output charge.",
+    "Identical initial pool liquidity and price, not identical block timestamps."
+  ]
+}

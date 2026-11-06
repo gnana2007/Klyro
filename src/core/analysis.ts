@@ -22,6 +22,11 @@ export function analyze(snapshot: Snapshot): Snapshot {
     confidence: Finding["confidence"] = "high",
   ) {
     const finding: Finding = {
+      chainId: snapshot.chainId,
+      blockNumber: snapshot.blockNumber,
+      timestamp: snapshot.blockTimestamp,
+      sourceType: "deterministic-analysis",
+      detectionMethod: ruleId,
       id: ruleId,
       ruleId,
       title,

@@ -1,0 +1,22 @@
+🚀 Compiling workflow
+📁 Input:   C:\Users\Gnanada\OneDrive\Documents\OneDrive\Documents\ChatGPT\ethglobal mumbai\cre\main.ts
+🧪 JS out:  C:\Users\Gnanada\OneDrive\Documents\OneDrive\Documents\ChatGPT\ethglobal mumbai\.tools\hscan-workflow.js
+🎯 WASM out:C:\Users\Gnanada\OneDrive\Documents\OneDrive\Documents\ChatGPT\ethglobal mumbai\.tools\hscan-workflow.wasm
+
+📦 Step 1: Compiling JS...
+📁 Using input file: C:\Users\Gnanada\OneDrive\Documents\OneDrive\Documents\ChatGPT\ethglobal mumbai\cre\main.ts
+Bundled 1 module in 140ms
+
+  hscan-workflow.js  0.99 MB  (entry point)
+
+✅ Built: C:\Users\Gnanada\OneDrive\Documents\OneDrive\Documents\ChatGPT\ethglobal mumbai\.tools\hscan-workflow.js
+
+🔨 Step 2: Compiling to WASM...
+🔨 Compiling to WASM
+📁 Input:  C:\Users\Gnanada\OneDrive\Documents\OneDrive\Documents\ChatGPT\ethglobal mumbai\.tools\hscan-workflow.js
+🎯 Output: C:\Users\Gnanada\OneDrive\Documents\OneDrive\Documents\ChatGPT\ethglobal mumbai\.tools\hscan-workflow.wasm
+[cre-sdk-javy-plugin] Detected platform: win32, arch: x64
+[cre-sdk-javy-plugin] Using cached binary: C:\Users\Gnanada\.cache\javy\v8.1.0\win32-x64\javy.exe
+✅ Compiled: C:\Users\Gnanada\OneDrive\Documents\OneDrive\Documents\ChatGPT\ethglobal mumbai\.tools\hscan-workflow.wasm
+
+✅ Workflow built: C:\Users\Gnanada\OneDrive\Documents\OneDrive\Documents\ChatGPT\ethglobal mumbai\.tools\hscan-workflow.wasm

@@ -1,5 +1,5 @@
 import { keccak256, toHex } from "viem";
-export const ANALYSIS_VERSION = "hscan-rules/1.0.0";
+export const ANALYSIS_VERSION = "hscan-rules/1.1.0";
 export function canonical(value: unknown): string {
   if (value === null || typeof value === "boolean" || typeof value === "string")
     return JSON.stringify(value);

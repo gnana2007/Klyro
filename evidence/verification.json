@@ -1,0 +1,33 @@
+{
+  "id": "24aa98a9-4a26-41f1-8148-7242295d0832",
+  "expectedHash": "0xb0f796e35c6236c3a70e6324fd08178c9b6687ab809752e7e48326eb8d91fbfb",
+  "computedHash": "0xb0f796e35c6236c3a70e6324fd08178c9b6687ab809752e7e48326eb8d91fbfb",
+  "integrity": "MATCH",
+  "authenticity": "REGISTRY_MATCH",
+  "registry": {
+    "status": "MATCH",
+    "registryAddress": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+    "chainId": 31337,
+    "publishedAt": "1793955674",
+    "publisher": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+  },
+  "current": {
+    "status": "MATCH",
+    "blockNumber": "18",
+    "stateFingerprint": "0x48b14162c614a3be00d49cec62936dd64f4c1a092c97c88de718064768f9e929",
+    "scannedAnalysisVersion": "hscan-rules/1.1.0",
+    "currentAnalysisVersion": "hscan-rules/1.1.0",
+    "reanalysisRecommended": false,
+    "limitations": [
+      "This is a bounded security investigation, not a full audit or safety certification.",
+      "Only recognized proxy patterns and selected state are inspected.",
+      "Static opcode/address candidates do not prove executed calls.",
+      "Current code matching cannot establish equivalence of all runtime behavior."
+    ]
+  },
+  "limitations": [
+    "Local hash matching alone is not independent historical authenticity.",
+    "A historically authentic report can describe a contract that has since changed.",
+    "Current matching covers code, recognized implementations, permissions and owner getter, not every storage slot or dependency."
+  ]
+}

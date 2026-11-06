@@ -1,0 +1,33 @@
+name: HSCAN verification
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run contracts:test -- -vv
+      - run: node node_modules/typescript/bin/tsc -p cre/tsconfig.json
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun node_modules/@chainlink/cre-sdk/bin/cre-compile.ts cre/main.ts /tmp/hscan-workflow.wasm
+      - run: npm run simulation
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          BROWSER_PATH: chromium
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: execution-evidence
+          path: |
+            evidence/
+            test-results/

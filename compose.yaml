@@ -1,0 +1,12 @@
+services:
+  hscan:
+    build: .
+    ports: ["3000:3000"]
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_PATH: /app/data/hscan.sqlite
+    volumes: ["hscan-data:/app/data"]
+    restart: unless-stopped
+volumes:
+  hscan-data:

@@ -95,6 +95,20 @@ describe("evidence and rules", () => {
   });
 });
 describe("historical comparison", () => {
+  it("does not mistake finding timestamps for behavioral changes", () => {
+    const a = analyze(snapshot()),
+      b = structuredClone(a);
+    b.blockNumber = "2";
+    b.blockTimestamp = "2026-11-06T00:00:12.000Z";
+    for (const f of b.findings) {
+      f.blockNumber = "2";
+      f.timestamp = b.blockTimestamp;
+    }
+    const d = compareSnapshots(a, b);
+    expect(d.findings.find((f) => f.id === "CAP-DELTA")?.status).toBe(
+      "unchanged",
+    );
+  });
   it("distinguishes an implementation update from stable proxy code", () => {
     const a = analyze(snapshot()),
       b = structuredClone(a);

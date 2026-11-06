@@ -1,0 +1,1 @@
+{"schedule":"0 */5 * * * *","passportUrl":"http://127.0.0.1:3000/api/passports/REPLACE_WITH_REAL_PASSPORT_ID","chainSelector":"ethereum-testnet-sepolia","chainId":11155111,"isTestnet":true,"requireInference":true,"publish":false}

@@ -1,0 +1,26 @@
+[
+ {
+  "scope": "app",
+  "shape": "app screen",
+  "theme": "console",
+  "axes": "dark/grotesk-sans/chromatic-amber",
+  "hero": "scanner entry",
+  "nav": "compact topbar",
+  "footer": "two factual lines",
+  "imagery": "actual product interface",
+  "signature": "selected finding to block-pinned evidence",
+  "sections": [
+   "scanner",
+   "overview",
+   "evidence",
+   "diff",
+   "simulation",
+   "explanation",
+   "passport"
+  ],
+  "prompt": "HSCAN Uniswap v4 evidence-driven investigation workbench",
+  "waived": [],
+  "date": "2026-11-06",
+  "mode": "build"
+ }
+]

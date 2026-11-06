@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { parseAbi, type Address, type Hex } from "viem";
-import { hash } from "../core/canonical";
+import { hash, fingerprints } from "../core/canonical";
 import { compareSnapshots } from "../core/diff";
 import type { PassportReport } from "../core/types";
 import {
@@ -98,15 +98,23 @@ export async function verifyPassport(
         chainId: s.chainId,
         address: s.address,
       });
+      const comparableFingerprint = fingerprints({
+        ...observed,
+        analysisVersion: s.analysisVersion,
+        config: { owner: observed.owner },
+      }).stateFingerprint;
       current = {
         status:
           !s.proxy.resolved || !observed.proxy.resolved
             ? "UNVERIFIABLE"
-            : observed.stateFingerprint === s.stateFingerprint
+            : comparableFingerprint === s.stateFingerprint
               ? "MATCH"
               : "CHANGED",
         blockNumber: observed.blockNumber,
-        stateFingerprint: observed.stateFingerprint,
+        stateFingerprint: comparableFingerprint,
+        scannedAnalysisVersion: s.analysisVersion,
+        currentAnalysisVersion: observed.analysisVersion,
+        reanalysisRecommended: s.analysisVersion !== observed.analysisVersion,
         limitations: observed.limitations,
       };
     } catch {

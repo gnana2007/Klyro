@@ -12,7 +12,11 @@ const buckets = new Map<string, { count: number; start: number }>();
 export function protect(request: Request, costly = false) {
   const origin = request.headers.get("origin");
   const expected = process.env.APP_ORIGIN || "http://127.0.0.1:3000";
-  if (origin && origin !== expected)
+  const allowedOrigins = new Set([
+    expected,
+    ...(process.env.APP_ADDITIONAL_ORIGINS || "").split(",").filter(Boolean),
+  ]);
+  if (origin && !allowedOrigins.has(origin))
     throw new HttpError(403, "Origin not allowed");
   if (costly && process.env.OPERATOR_TOKEN) {
     const incoming = Buffer.from(request.headers.get("x-operator-token") || "");

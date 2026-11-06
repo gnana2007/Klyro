@@ -1,0 +1,2034 @@
+{
+  "scope": "LOCAL_PROXY_RESOLUTION_FIXTURE_NOT_A_CONFIRMED_HOOK",
+  "timestamp": "2026-11-06T08:42:03.324Z",
+  "proxy": "0x8a791620dd6260079bf849dc5567adc3f2fdc318",
+  "upgradeTransaction": "0x4a3785889af98b8214a059a990e191dc7c8c53e97d14600200b99c1b606225c2",
+  "before": {
+    "schema": "hscan.snapshot.v1",
+    "id": "2ab8a298-ff7f-491b-bd1d-035f8ea2574f",
+    "chainId": 31337,
+    "address": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    "blockNumber": "10",
+    "blockHash": "0x5559eef71514934e7a237afeb4fbc9ced26fd663b242ff87ee19e4bd975d40b4",
+    "blockTimestamp": "2026-11-06T08:42:03.000Z",
+    "scannedAt": "2026-11-06T08:42:03.195Z",
+    "runtimeHash": "0x52d1f0474bed51ecab37b668ea664015b47b054705cb0811e02f21b28769bea1",
+    "codeSize": 385,
+    "permissions": [
+      {
+        "name": "beforeInitialize",
+        "bit": 13,
+        "description": "Runs before a pool is initialized.",
+        "enabled": false
+      },
+      {
+        "name": "afterInitialize",
+        "bit": 12,
+        "description": "Runs after pool initialization.",
+        "enabled": false
+      },
+      {
+        "name": "beforeAddLiquidity",
+        "bit": 11,
+        "description": "Runs before liquidity is added.",
+        "enabled": false
+      },
+      {
+        "name": "afterAddLiquidity",
+        "bit": 10,
+        "description": "Runs after liquidity is added.",
+        "enabled": false
+      },
+      {
+        "name": "beforeRemoveLiquidity",
+        "bit": 9,
+        "description": "Runs before liquidity is removed.",
+        "enabled": true
+      },
+      {
+        "name": "afterRemoveLiquidity",
+        "bit": 8,
+        "description": "Runs after liquidity is removed.",
+        "enabled": true
+      },
+      {
+        "name": "beforeSwap",
+        "bit": 7,
+        "description": "Runs before a swap and may set a dynamic LP fee when the pool permits it.",
+        "enabled": false
+      },
+      {
+        "name": "afterSwap",
+        "bit": 6,
+        "description": "Runs after a swap.",
+        "enabled": false
+      },
+      {
+        "name": "beforeDonate",
+        "bit": 5,
+        "description": "Runs before a donation.",
+        "enabled": false
+      },
+      {
+        "name": "afterDonate",
+        "bit": 4,
+        "description": "Runs after a donation.",
+        "enabled": true
+      },
+      {
+        "name": "beforeSwapReturnDelta",
+        "bit": 3,
+        "description": "May change swap accounting through a before-swap delta.",
+        "enabled": true
+      },
+      {
+        "name": "afterSwapReturnDelta",
+        "bit": 2,
+        "description": "May change accounting through an after-swap delta.",
+        "enabled": false
+      },
+      {
+        "name": "afterAddLiquidityReturnDelta",
+        "bit": 1,
+        "description": "May return an accounting delta after adding liquidity.",
+        "enabled": false
+      },
+      {
+        "name": "afterRemoveLiquidityReturnDelta",
+        "bit": 0,
+        "description": "May return an accounting delta after removing liquidity.",
+        "enabled": false
+      }
+    ],
+    "permissionBitmap": 792,
+    "permissionValid": false,
+    "compatibility": "INVALID",
+    "proxy": {
+      "kind": "eip1967",
+      "implementation": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "implementationHash": "0x9c631372307be0c7985829158dcfcd05117aeda72dc31cfc71260c92cc1be02c",
+      "admin": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "beacon": null,
+      "resolved": true,
+      "limitations": [
+        "Unrecognized proxy patterns can remain undetected."
+      ]
+    },
+    "owner": null,
+    "source": {
+      "status": "UNKNOWN",
+      "url": "https://repo.sourcify.dev/31337/0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "files": []
+    },
+    "dependencies": [],
+    "poolContext": {
+      "manager": "0xa16E02E87b7454126E5E10d957A927A7F5B5d2be",
+      "pools": [],
+      "status": "UNKNOWN"
+    },
+    "findings": [
+      {
+        "id": "CAP-DELTA",
+        "ruleId": "CAP-DELTA",
+        "title": "Return-delta accounting enabled",
+        "severity": "info",
+        "category": "capability",
+        "evidenceIds": [
+          "permission:beforeSwapReturnDelta"
+        ],
+        "explanation": "The address enables callbacks that can return accounting deltas. This is a protocol capability.",
+        "investigation": "Review callback code and compare controlled balance changes.",
+        "status": "OBSERVED",
+        "confidence": "high",
+        "analysisVersion": "hscan-rules/1.0.0",
+        "limitations": [
+          "An indicator or capability is not a confirmed vulnerability."
+        ]
+      },
+      {
+        "id": "HOOK-FLAGS",
+        "ruleId": "HOOK-FLAGS",
+        "title": "Invalid permission dependencies",
+        "severity": "high",
+        "category": "security-indicator",
+        "evidenceIds": [
+          "permissions"
+        ],
+        "explanation": "A return-delta flag lacks its required callback flag. The official PoolManager rejects this combination.",
+        "investigation": "Confirm the address and pool fee configuration.",
+        "status": "OBSERVED",
+        "confidence": "high",
+        "analysisVersion": "hscan-rules/1.0.0",
+        "limitations": [
+          "An indicator or capability is not a confirmed vulnerability."
+        ]
+      },
+      {
+        "id": "SOURCE-UNKNOWN",
+        "ruleId": "SOURCE-UNKNOWN",
+        "title": "Verified source unavailable",
+        "severity": "low",
+        "category": "security-indicator",
+        "evidenceIds": [
+          "source"
+        ],
+        "explanation": "Source verification could not be established. Bytecode alone does not reveal every behavior.",
+        "investigation": "Provide verified source and reproducible compiler settings.",
+        "status": "UNKNOWN",
+        "confidence": "high",
+        "analysisVersion": "hscan-rules/1.0.0",
+        "limitations": [
+          "An indicator or capability is not a confirmed vulnerability."
+        ]
+      },
+      {
+        "id": "PROXY",
+        "ruleId": "PROXY",
+        "title": "Implementation indirection detected",
+        "severity": "medium",
+        "category": "security-indicator",
+        "evidenceIds": [
+          "proxy"
+        ],
+        "explanation": "The observed contract may delegate behavior to a separately deployed implementation.",
+        "investigation": "Inspect upgrade authority and compare implementation hashes across scans.",
+        "status": "OBSERVED",
+        "confidence": "high",
+        "analysisVersion": "hscan-rules/1.0.0",
+        "limitations": [
+          "An indicator or capability is not a confirmed vulnerability."
+        ]
+      },
+      {
+        "id": "CALL-OPS",
+        "ruleId": "CALL-OPS",
+        "title": "External-call instructions present",
+        "severity": "info",
+        "category": "capability",
+        "evidenceIds": [
+          "bytecode"
+        ],
+        "explanation": "Executable instruction scanning found CALL-family opcodes outside PUSH data. Reachability is not proven.",
+        "investigation": "Use traces to identify actual targets and reachable paths.",
+        "status": "ESTIMATED",
+        "confidence": "medium",
+        "analysisVersion": "hscan-rules/1.0.0",
+        "limitations": [
+          "An indicator or capability is not a confirmed vulnerability."
+        ]
+      }
+    ],
+    "evidence": {
+      "nodes": [
+        {
+          "id": "hook",
+          "type": "Hook",
+          "label": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "address": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318"
+          },
+          "limitations": []
+        },
+        {
+          "id": "bytecode",
+          "type": "Contract",
+          "label": "Runtime bytecode",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "hash": "0x52d1f0474bed51ecab37b668ea664015b47b054705cb0811e02f21b28769bea1",
+            "codeSize": 385,
+            "callOpcodes": 1,
+            "push20Candidates": []
+          },
+          "limitations": []
+        },
+        {
+          "id": "permissions",
+          "type": "Code observation",
+          "label": "Uniswap permission bitmap",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "bitmap": 792,
+            "valid": false
+          },
+          "limitations": []
+        },
+        {
+          "id": "proxy",
+          "type": "Code observation",
+          "label": "Proxy resolution",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "kind": "eip1967",
+            "implementation": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+            "implementationHash": "0x9c631372307be0c7985829158dcfcd05117aeda72dc31cfc71260c92cc1be02c",
+            "admin": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "beacon": null,
+            "resolved": true,
+            "limitations": [
+              "Unrecognized proxy patterns can remain undetected."
+            ]
+          },
+          "limitations": []
+        },
+        {
+          "id": "owner",
+          "type": "Admin mechanism",
+          "label": "Ownership observation",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "owner() getter",
+          "data": {
+            "address": null
+          },
+          "limitations": [
+            "A getter is not proof of access control."
+          ]
+        },
+        {
+          "id": "source",
+          "type": "Code observation",
+          "label": "Source verification",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "Sourcify v2 runtime-hash match",
+          "data": {
+            "status": "UNKNOWN",
+            "url": "https://repo.sourcify.dev/31337/0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+            "files": [],
+            "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
+          },
+          "limitations": [
+            "Sourcify verification is not a safety judgment."
+          ]
+        },
+        {
+          "id": "pool",
+          "type": "Code observation",
+          "label": "Pool association",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "manager": "0xa16E02E87b7454126E5E10d957A927A7F5B5d2be",
+            "pools": []
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeInitialize",
+          "type": "Permission",
+          "label": "beforeInitialize",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 13,
+            "description": "Runs before a pool is initialized."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterInitialize",
+          "type": "Permission",
+          "label": "afterInitialize",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 12,
+            "description": "Runs after pool initialization."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeAddLiquidity",
+          "type": "Permission",
+          "label": "beforeAddLiquidity",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 11,
+            "description": "Runs before liquidity is added."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterAddLiquidity",
+          "type": "Permission",
+          "label": "afterAddLiquidity",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 10,
+            "description": "Runs after liquidity is added."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeRemoveLiquidity",
+          "type": "Permission",
+          "label": "beforeRemoveLiquidity",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": true,
+            "bit": 9,
+            "description": "Runs before liquidity is removed."
+          },
+          "limitations": []
+        },
+        {
+          "id": "callback:beforeRemoveLiquidity",
+          "type": "Callback",
+          "label": "beforeRemoveLiquidity",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "Address permission only",
+          "data": {
+            "implementation": "UNKNOWN"
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterRemoveLiquidity",
+          "type": "Permission",
+          "label": "afterRemoveLiquidity",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": true,
+            "bit": 8,
+            "description": "Runs after liquidity is removed."
+          },
+          "limitations": []
+        },
+        {
+          "id": "callback:afterRemoveLiquidity",
+          "type": "Callback",
+          "label": "afterRemoveLiquidity",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "Address permission only",
+          "data": {
+            "implementation": "UNKNOWN"
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeSwap",
+          "type": "Permission",
+          "label": "beforeSwap",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 7,
+            "description": "Runs before a swap and may set a dynamic LP fee when the pool permits it."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterSwap",
+          "type": "Permission",
+          "label": "afterSwap",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 6,
+            "description": "Runs after a swap."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeDonate",
+          "type": "Permission",
+          "label": "beforeDonate",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 5,
+            "description": "Runs before a donation."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterDonate",
+          "type": "Permission",
+          "label": "afterDonate",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": true,
+            "bit": 4,
+            "description": "Runs after a donation."
+          },
+          "limitations": []
+        },
+        {
+          "id": "callback:afterDonate",
+          "type": "Callback",
+          "label": "afterDonate",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "Address permission only",
+          "data": {
+            "implementation": "UNKNOWN"
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeSwapReturnDelta",
+          "type": "Permission",
+          "label": "beforeSwapReturnDelta",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": true,
+            "bit": 3,
+            "description": "May change swap accounting through a before-swap delta."
+          },
+          "limitations": []
+        },
+        {
+          "id": "callback:beforeSwapReturnDelta",
+          "type": "Callback",
+          "label": "beforeSwapReturnDelta",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "Address permission only",
+          "data": {
+            "implementation": "UNKNOWN"
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterSwapReturnDelta",
+          "type": "Permission",
+          "label": "afterSwapReturnDelta",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 2,
+            "description": "May change accounting through an after-swap delta."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterAddLiquidityReturnDelta",
+          "type": "Permission",
+          "label": "afterAddLiquidityReturnDelta",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 1,
+            "description": "May return an accounting delta after adding liquidity."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterRemoveLiquidityReturnDelta",
+          "type": "Permission",
+          "label": "afterRemoveLiquidityReturnDelta",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 0,
+            "description": "May return an accounting delta after removing liquidity."
+          },
+          "limitations": []
+        },
+        {
+          "id": "finding:CAP-DELTA",
+          "type": "Risk finding",
+          "label": "Return-delta accounting enabled",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "CAP-DELTA",
+          "data": {
+            "severity": "info",
+            "category": "capability"
+          },
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        {
+          "id": "finding:HOOK-FLAGS",
+          "type": "Risk finding",
+          "label": "Invalid permission dependencies",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "HOOK-FLAGS",
+          "data": {
+            "severity": "high",
+            "category": "security-indicator"
+          },
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        {
+          "id": "finding:SOURCE-UNKNOWN",
+          "type": "Risk finding",
+          "label": "Verified source unavailable",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "SOURCE-UNKNOWN",
+          "data": {
+            "severity": "low",
+            "category": "security-indicator"
+          },
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        {
+          "id": "finding:PROXY",
+          "type": "Risk finding",
+          "label": "Implementation indirection detected",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "PROXY",
+          "data": {
+            "severity": "medium",
+            "category": "security-indicator"
+          },
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        {
+          "id": "finding:CALL-OPS",
+          "type": "Risk finding",
+          "label": "External-call instructions present",
+          "status": "ESTIMATED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "10",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "CALL-OPS",
+          "data": {
+            "severity": "info",
+            "category": "capability"
+          },
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "hook",
+          "to": "permission:beforeInitialize",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterInitialize",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:beforeAddLiquidity",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterAddLiquidity",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:beforeRemoveLiquidity",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "permission:beforeRemoveLiquidity",
+          "to": "callback:beforeRemoveLiquidity",
+          "type": "ENABLES_CALLBACK"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterRemoveLiquidity",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "permission:afterRemoveLiquidity",
+          "to": "callback:afterRemoveLiquidity",
+          "type": "ENABLES_CALLBACK"
+        },
+        {
+          "from": "hook",
+          "to": "permission:beforeSwap",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterSwap",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:beforeDonate",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterDonate",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "permission:afterDonate",
+          "to": "callback:afterDonate",
+          "type": "ENABLES_CALLBACK"
+        },
+        {
+          "from": "hook",
+          "to": "permission:beforeSwapReturnDelta",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "permission:beforeSwapReturnDelta",
+          "to": "callback:beforeSwapReturnDelta",
+          "type": "ENABLES_CALLBACK"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterSwapReturnDelta",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterAddLiquidityReturnDelta",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterRemoveLiquidityReturnDelta",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "permission:beforeSwapReturnDelta",
+          "to": "finding:CAP-DELTA",
+          "type": "SUPPORTS_FINDING"
+        },
+        {
+          "from": "permissions",
+          "to": "finding:HOOK-FLAGS",
+          "type": "SUPPORTS_FINDING"
+        },
+        {
+          "from": "source",
+          "to": "finding:SOURCE-UNKNOWN",
+          "type": "SUPPORTS_FINDING"
+        },
+        {
+          "from": "proxy",
+          "to": "finding:PROXY",
+          "type": "SUPPORTS_FINDING"
+        },
+        {
+          "from": "bytecode",
+          "to": "finding:CALL-OPS",
+          "type": "SUPPORTS_FINDING"
+        }
+      ]
+    },
+    "attentionScore": 50,
+    "stateFingerprint": "0x3fff1b06e366fd5bafebdedcc2d93bf1941e534788e84cdde67550dc99e893e3",
+    "observationFingerprint": "0x93bb4ec6fa66e57eb964492085bd4a1d999f587de7432e2a1329d02048c6896a",
+    "analysisVersion": "hscan-rules/1.0.0",
+    "limitations": [
+      "This is a bounded security investigation, not a full audit or safety certification.",
+      "Only recognized proxy patterns and selected state are inspected.",
+      "Static opcode/address candidates do not prove executed calls.",
+      "Current code matching cannot establish equivalence of all runtime behavior.",
+      "No matching initialization in the bounded event window; older pools may exist."
+    ]
+  },
+  "after": {
+    "schema": "hscan.snapshot.v1",
+    "id": "df9536fb-f4a4-4cf8-bdfd-9af81948d4a3",
+    "chainId": 31337,
+    "address": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    "blockNumber": "11",
+    "blockHash": "0x643795ba5ef5e06899d5fb9bf87ea7ee70b891bf2ce0d9af6fb60b49c96367fa",
+    "blockTimestamp": "2026-11-06T08:42:03.000Z",
+    "scannedAt": "2026-11-06T08:42:03.306Z",
+    "runtimeHash": "0x52d1f0474bed51ecab37b668ea664015b47b054705cb0811e02f21b28769bea1",
+    "codeSize": 385,
+    "permissions": [
+      {
+        "name": "beforeInitialize",
+        "bit": 13,
+        "description": "Runs before a pool is initialized.",
+        "enabled": false
+      },
+      {
+        "name": "afterInitialize",
+        "bit": 12,
+        "description": "Runs after pool initialization.",
+        "enabled": false
+      },
+      {
+        "name": "beforeAddLiquidity",
+        "bit": 11,
+        "description": "Runs before liquidity is added.",
+        "enabled": false
+      },
+      {
+        "name": "afterAddLiquidity",
+        "bit": 10,
+        "description": "Runs after liquidity is added.",
+        "enabled": false
+      },
+      {
+        "name": "beforeRemoveLiquidity",
+        "bit": 9,
+        "description": "Runs before liquidity is removed.",
+        "enabled": true
+      },
+      {
+        "name": "afterRemoveLiquidity",
+        "bit": 8,
+        "description": "Runs after liquidity is removed.",
+        "enabled": true
+      },
+      {
+        "name": "beforeSwap",
+        "bit": 7,
+        "description": "Runs before a swap and may set a dynamic LP fee when the pool permits it.",
+        "enabled": false
+      },
+      {
+        "name": "afterSwap",
+        "bit": 6,
+        "description": "Runs after a swap.",
+        "enabled": false
+      },
+      {
+        "name": "beforeDonate",
+        "bit": 5,
+        "description": "Runs before a donation.",
+        "enabled": false
+      },
+      {
+        "name": "afterDonate",
+        "bit": 4,
+        "description": "Runs after a donation.",
+        "enabled": true
+      },
+      {
+        "name": "beforeSwapReturnDelta",
+        "bit": 3,
+        "description": "May change swap accounting through a before-swap delta.",
+        "enabled": true
+      },
+      {
+        "name": "afterSwapReturnDelta",
+        "bit": 2,
+        "description": "May change accounting through an after-swap delta.",
+        "enabled": false
+      },
+      {
+        "name": "afterAddLiquidityReturnDelta",
+        "bit": 1,
+        "description": "May return an accounting delta after adding liquidity.",
+        "enabled": false
+      },
+      {
+        "name": "afterRemoveLiquidityReturnDelta",
+        "bit": 0,
+        "description": "May return an accounting delta after removing liquidity.",
+        "enabled": false
+      }
+    ],
+    "permissionBitmap": 792,
+    "permissionValid": false,
+    "compatibility": "INVALID",
+    "proxy": {
+      "kind": "eip1967",
+      "implementation": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+      "implementationHash": "0x82ca7335e529ac4731d1961bdba767222a1cade21898cbe070add7eddb33944a",
+      "admin": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "beacon": null,
+      "resolved": true,
+      "limitations": [
+        "Unrecognized proxy patterns can remain undetected."
+      ]
+    },
+    "owner": null,
+    "source": {
+      "status": "UNKNOWN",
+      "url": "https://repo.sourcify.dev/31337/0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+      "files": []
+    },
+    "dependencies": [],
+    "poolContext": {
+      "manager": "0xa16E02E87b7454126E5E10d957A927A7F5B5d2be",
+      "pools": [],
+      "status": "UNKNOWN"
+    },
+    "findings": [
+      {
+        "id": "CAP-DELTA",
+        "ruleId": "CAP-DELTA",
+        "title": "Return-delta accounting enabled",
+        "severity": "info",
+        "category": "capability",
+        "evidenceIds": [
+          "permission:beforeSwapReturnDelta"
+        ],
+        "explanation": "The address enables callbacks that can return accounting deltas. This is a protocol capability.",
+        "investigation": "Review callback code and compare controlled balance changes.",
+        "status": "OBSERVED",
+        "confidence": "high",
+        "analysisVersion": "hscan-rules/1.0.0",
+        "limitations": [
+          "An indicator or capability is not a confirmed vulnerability."
+        ]
+      },
+      {
+        "id": "HOOK-FLAGS",
+        "ruleId": "HOOK-FLAGS",
+        "title": "Invalid permission dependencies",
+        "severity": "high",
+        "category": "security-indicator",
+        "evidenceIds": [
+          "permissions"
+        ],
+        "explanation": "A return-delta flag lacks its required callback flag. The official PoolManager rejects this combination.",
+        "investigation": "Confirm the address and pool fee configuration.",
+        "status": "OBSERVED",
+        "confidence": "high",
+        "analysisVersion": "hscan-rules/1.0.0",
+        "limitations": [
+          "An indicator or capability is not a confirmed vulnerability."
+        ]
+      },
+      {
+        "id": "SOURCE-UNKNOWN",
+        "ruleId": "SOURCE-UNKNOWN",
+        "title": "Verified source unavailable",
+        "severity": "low",
+        "category": "security-indicator",
+        "evidenceIds": [
+          "source"
+        ],
+        "explanation": "Source verification could not be established. Bytecode alone does not reveal every behavior.",
+        "investigation": "Provide verified source and reproducible compiler settings.",
+        "status": "UNKNOWN",
+        "confidence": "high",
+        "analysisVersion": "hscan-rules/1.0.0",
+        "limitations": [
+          "An indicator or capability is not a confirmed vulnerability."
+        ]
+      },
+      {
+        "id": "PROXY",
+        "ruleId": "PROXY",
+        "title": "Implementation indirection detected",
+        "severity": "medium",
+        "category": "security-indicator",
+        "evidenceIds": [
+          "proxy"
+        ],
+        "explanation": "The observed contract may delegate behavior to a separately deployed implementation.",
+        "investigation": "Inspect upgrade authority and compare implementation hashes across scans.",
+        "status": "OBSERVED",
+        "confidence": "high",
+        "analysisVersion": "hscan-rules/1.0.0",
+        "limitations": [
+          "An indicator or capability is not a confirmed vulnerability."
+        ]
+      },
+      {
+        "id": "CALL-OPS",
+        "ruleId": "CALL-OPS",
+        "title": "External-call instructions present",
+        "severity": "info",
+        "category": "capability",
+        "evidenceIds": [
+          "bytecode"
+        ],
+        "explanation": "Executable instruction scanning found CALL-family opcodes outside PUSH data. Reachability is not proven.",
+        "investigation": "Use traces to identify actual targets and reachable paths.",
+        "status": "ESTIMATED",
+        "confidence": "medium",
+        "analysisVersion": "hscan-rules/1.0.0",
+        "limitations": [
+          "An indicator or capability is not a confirmed vulnerability."
+        ]
+      }
+    ],
+    "evidence": {
+      "nodes": [
+        {
+          "id": "hook",
+          "type": "Hook",
+          "label": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "address": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318"
+          },
+          "limitations": []
+        },
+        {
+          "id": "bytecode",
+          "type": "Contract",
+          "label": "Runtime bytecode",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "hash": "0x52d1f0474bed51ecab37b668ea664015b47b054705cb0811e02f21b28769bea1",
+            "codeSize": 385,
+            "callOpcodes": 1,
+            "push20Candidates": []
+          },
+          "limitations": []
+        },
+        {
+          "id": "permissions",
+          "type": "Code observation",
+          "label": "Uniswap permission bitmap",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "bitmap": 792,
+            "valid": false
+          },
+          "limitations": []
+        },
+        {
+          "id": "proxy",
+          "type": "Code observation",
+          "label": "Proxy resolution",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "kind": "eip1967",
+            "implementation": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+            "implementationHash": "0x82ca7335e529ac4731d1961bdba767222a1cade21898cbe070add7eddb33944a",
+            "admin": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "beacon": null,
+            "resolved": true,
+            "limitations": [
+              "Unrecognized proxy patterns can remain undetected."
+            ]
+          },
+          "limitations": []
+        },
+        {
+          "id": "owner",
+          "type": "Admin mechanism",
+          "label": "Ownership observation",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "owner() getter",
+          "data": {
+            "address": null
+          },
+          "limitations": [
+            "A getter is not proof of access control."
+          ]
+        },
+        {
+          "id": "source",
+          "type": "Code observation",
+          "label": "Source verification",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "Sourcify v2 runtime-hash match",
+          "data": {
+            "status": "UNKNOWN",
+            "url": "https://repo.sourcify.dev/31337/0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+            "files": [],
+            "target": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6"
+          },
+          "limitations": [
+            "Sourcify verification is not a safety judgment."
+          ]
+        },
+        {
+          "id": "pool",
+          "type": "Code observation",
+          "label": "Pool association",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "manager": "0xa16E02E87b7454126E5E10d957A927A7F5B5d2be",
+            "pools": []
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeInitialize",
+          "type": "Permission",
+          "label": "beforeInitialize",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 13,
+            "description": "Runs before a pool is initialized."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterInitialize",
+          "type": "Permission",
+          "label": "afterInitialize",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 12,
+            "description": "Runs after pool initialization."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeAddLiquidity",
+          "type": "Permission",
+          "label": "beforeAddLiquidity",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 11,
+            "description": "Runs before liquidity is added."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterAddLiquidity",
+          "type": "Permission",
+          "label": "afterAddLiquidity",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 10,
+            "description": "Runs after liquidity is added."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeRemoveLiquidity",
+          "type": "Permission",
+          "label": "beforeRemoveLiquidity",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": true,
+            "bit": 9,
+            "description": "Runs before liquidity is removed."
+          },
+          "limitations": []
+        },
+        {
+          "id": "callback:beforeRemoveLiquidity",
+          "type": "Callback",
+          "label": "beforeRemoveLiquidity",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "Address permission only",
+          "data": {
+            "implementation": "UNKNOWN"
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterRemoveLiquidity",
+          "type": "Permission",
+          "label": "afterRemoveLiquidity",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": true,
+            "bit": 8,
+            "description": "Runs after liquidity is removed."
+          },
+          "limitations": []
+        },
+        {
+          "id": "callback:afterRemoveLiquidity",
+          "type": "Callback",
+          "label": "afterRemoveLiquidity",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "Address permission only",
+          "data": {
+            "implementation": "UNKNOWN"
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeSwap",
+          "type": "Permission",
+          "label": "beforeSwap",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 7,
+            "description": "Runs before a swap and may set a dynamic LP fee when the pool permits it."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterSwap",
+          "type": "Permission",
+          "label": "afterSwap",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 6,
+            "description": "Runs after a swap."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeDonate",
+          "type": "Permission",
+          "label": "beforeDonate",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 5,
+            "description": "Runs before a donation."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterDonate",
+          "type": "Permission",
+          "label": "afterDonate",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": true,
+            "bit": 4,
+            "description": "Runs after a donation."
+          },
+          "limitations": []
+        },
+        {
+          "id": "callback:afterDonate",
+          "type": "Callback",
+          "label": "afterDonate",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "Address permission only",
+          "data": {
+            "implementation": "UNKNOWN"
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:beforeSwapReturnDelta",
+          "type": "Permission",
+          "label": "beforeSwapReturnDelta",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": true,
+            "bit": 3,
+            "description": "May change swap accounting through a before-swap delta."
+          },
+          "limitations": []
+        },
+        {
+          "id": "callback:beforeSwapReturnDelta",
+          "type": "Callback",
+          "label": "beforeSwapReturnDelta",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "Address permission only",
+          "data": {
+            "implementation": "UNKNOWN"
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterSwapReturnDelta",
+          "type": "Permission",
+          "label": "afterSwapReturnDelta",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 2,
+            "description": "May change accounting through an after-swap delta."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterAddLiquidityReturnDelta",
+          "type": "Permission",
+          "label": "afterAddLiquidityReturnDelta",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 1,
+            "description": "May return an accounting delta after adding liquidity."
+          },
+          "limitations": []
+        },
+        {
+          "id": "permission:afterRemoveLiquidityReturnDelta",
+          "type": "Permission",
+          "label": "afterRemoveLiquidityReturnDelta",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "block-pinned JSON-RPC",
+          "data": {
+            "enabled": false,
+            "bit": 0,
+            "description": "May return an accounting delta after removing liquidity."
+          },
+          "limitations": []
+        },
+        {
+          "id": "finding:CAP-DELTA",
+          "type": "Risk finding",
+          "label": "Return-delta accounting enabled",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "CAP-DELTA",
+          "data": {
+            "severity": "info",
+            "category": "capability"
+          },
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        {
+          "id": "finding:HOOK-FLAGS",
+          "type": "Risk finding",
+          "label": "Invalid permission dependencies",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "HOOK-FLAGS",
+          "data": {
+            "severity": "high",
+            "category": "security-indicator"
+          },
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        {
+          "id": "finding:SOURCE-UNKNOWN",
+          "type": "Risk finding",
+          "label": "Verified source unavailable",
+          "status": "UNKNOWN",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "SOURCE-UNKNOWN",
+          "data": {
+            "severity": "low",
+            "category": "security-indicator"
+          },
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        {
+          "id": "finding:PROXY",
+          "type": "Risk finding",
+          "label": "Implementation indirection detected",
+          "status": "OBSERVED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "PROXY",
+          "data": {
+            "severity": "medium",
+            "category": "security-indicator"
+          },
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        {
+          "id": "finding:CALL-OPS",
+          "type": "Risk finding",
+          "label": "External-call instructions present",
+          "status": "ESTIMATED",
+          "source": "chain observation",
+          "chainId": 31337,
+          "blockNumber": "11",
+          "timestamp": "2026-11-06T08:42:03.000Z",
+          "method": "CALL-OPS",
+          "data": {
+            "severity": "info",
+            "category": "capability"
+          },
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "hook",
+          "to": "permission:beforeInitialize",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterInitialize",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:beforeAddLiquidity",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterAddLiquidity",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:beforeRemoveLiquidity",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "permission:beforeRemoveLiquidity",
+          "to": "callback:beforeRemoveLiquidity",
+          "type": "ENABLES_CALLBACK"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterRemoveLiquidity",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "permission:afterRemoveLiquidity",
+          "to": "callback:afterRemoveLiquidity",
+          "type": "ENABLES_CALLBACK"
+        },
+        {
+          "from": "hook",
+          "to": "permission:beforeSwap",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterSwap",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:beforeDonate",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterDonate",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "permission:afterDonate",
+          "to": "callback:afterDonate",
+          "type": "ENABLES_CALLBACK"
+        },
+        {
+          "from": "hook",
+          "to": "permission:beforeSwapReturnDelta",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "permission:beforeSwapReturnDelta",
+          "to": "callback:beforeSwapReturnDelta",
+          "type": "ENABLES_CALLBACK"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterSwapReturnDelta",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterAddLiquidityReturnDelta",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "hook",
+          "to": "permission:afterRemoveLiquidityReturnDelta",
+          "type": "HAS_PERMISSION"
+        },
+        {
+          "from": "permission:beforeSwapReturnDelta",
+          "to": "finding:CAP-DELTA",
+          "type": "SUPPORTS_FINDING"
+        },
+        {
+          "from": "permissions",
+          "to": "finding:HOOK-FLAGS",
+          "type": "SUPPORTS_FINDING"
+        },
+        {
+          "from": "source",
+          "to": "finding:SOURCE-UNKNOWN",
+          "type": "SUPPORTS_FINDING"
+        },
+        {
+          "from": "proxy",
+          "to": "finding:PROXY",
+          "type": "SUPPORTS_FINDING"
+        },
+        {
+          "from": "bytecode",
+          "to": "finding:CALL-OPS",
+          "type": "SUPPORTS_FINDING"
+        }
+      ]
+    },
+    "attentionScore": 50,
+    "stateFingerprint": "0xb4ca42e07bdb6015b10f7e3b6501bb72bfb7395c2581de08bfd109ceafde9a70",
+    "observationFingerprint": "0xe9b1a6a20fc2ba68a3030dbd4d739b665c0cb3147662259506c05b987651082c",
+    "analysisVersion": "hscan-rules/1.0.0",
+    "limitations": [
+      "This is a bounded security investigation, not a full audit or safety certification.",
+      "Only recognized proxy patterns and selected state are inspected.",
+      "Static opcode/address candidates do not prove executed calls.",
+      "Current code matching cannot establish equivalence of all runtime behavior.",
+      "No matching initialization in the bounded event window; older pools may exist."
+    ]
+  },
+  "diff": {
+    "schema": "hscan.diff.v1",
+    "id": "0xff7ebd5198587841620f92b092ad9d4ca25986b53ed30162fbf10c27010a1ac2",
+    "previousId": "2ab8a298-ff7f-491b-bd1d-035f8ea2574f",
+    "currentId": "df9536fb-f4a4-4cf8-bdfd-9af81948d4a3",
+    "changes": [
+      {
+        "field": "runtimeHash",
+        "before": "0x52d1f0474bed51ecab37b668ea664015b47b054705cb0811e02f21b28769bea1",
+        "after": "0x52d1f0474bed51ecab37b668ea664015b47b054705cb0811e02f21b28769bea1",
+        "status": "unchanged",
+        "evidenceIds": [
+          "bytecode"
+        ]
+      },
+      {
+        "field": "codeSize",
+        "before": 385,
+        "after": 385,
+        "status": "unchanged",
+        "evidenceIds": [
+          "bytecode"
+        ]
+      },
+      {
+        "field": "permissionBitmap",
+        "before": 792,
+        "after": 792,
+        "status": "unchanged",
+        "evidenceIds": [
+          "permissions"
+        ]
+      },
+      {
+        "field": "owner",
+        "before": null,
+        "after": null,
+        "status": "unchanged",
+        "evidenceIds": [
+          "owner"
+        ]
+      },
+      {
+        "field": "dependencies",
+        "before": [],
+        "after": [],
+        "status": "unchanged",
+        "evidenceIds": [
+          "bytecode"
+        ]
+      },
+      {
+        "field": "stateFingerprint",
+        "before": "0x3fff1b06e366fd5bafebdedcc2d93bf1941e534788e84cdde67550dc99e893e3",
+        "after": "0xb4ca42e07bdb6015b10f7e3b6501bb72bfb7395c2581de08bfd109ceafde9a70",
+        "status": "changed",
+        "evidenceIds": [
+          "bytecode"
+        ]
+      },
+      {
+        "field": "proxy.implementation",
+        "before": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+        "after": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+        "status": "changed",
+        "evidenceIds": [
+          "proxy"
+        ]
+      },
+      {
+        "field": "proxy.implementationHash",
+        "before": "0x9c631372307be0c7985829158dcfcd05117aeda72dc31cfc71260c92cc1be02c",
+        "after": "0x82ca7335e529ac4731d1961bdba767222a1cade21898cbe070add7eddb33944a",
+        "status": "changed",
+        "evidenceIds": [
+          "proxy"
+        ]
+      },
+      {
+        "field": "proxy.admin",
+        "before": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "after": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "status": "unchanged",
+        "evidenceIds": [
+          "proxy"
+        ]
+      },
+      {
+        "field": "proxy.beacon",
+        "before": null,
+        "after": null,
+        "status": "unchanged",
+        "evidenceIds": [
+          "proxy"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "CALL-OPS",
+        "status": "unchanged",
+        "before": {
+          "id": "CALL-OPS",
+          "ruleId": "CALL-OPS",
+          "title": "External-call instructions present",
+          "severity": "info",
+          "category": "capability",
+          "evidenceIds": [
+            "bytecode"
+          ],
+          "explanation": "Executable instruction scanning found CALL-family opcodes outside PUSH data. Reachability is not proven.",
+          "investigation": "Use traces to identify actual targets and reachable paths.",
+          "status": "ESTIMATED",
+          "confidence": "medium",
+          "analysisVersion": "hscan-rules/1.0.0",
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        "after": {
+          "id": "CALL-OPS",
+          "ruleId": "CALL-OPS",
+          "title": "External-call instructions present",
+          "severity": "info",
+          "category": "capability",
+          "evidenceIds": [
+            "bytecode"
+          ],
+          "explanation": "Executable instruction scanning found CALL-family opcodes outside PUSH data. Reachability is not proven.",
+          "investigation": "Use traces to identify actual targets and reachable paths.",
+          "status": "ESTIMATED",
+          "confidence": "medium",
+          "analysisVersion": "hscan-rules/1.0.0",
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        }
+      },
+      {
+        "id": "CAP-DELTA",
+        "status": "unchanged",
+        "before": {
+          "id": "CAP-DELTA",
+          "ruleId": "CAP-DELTA",
+          "title": "Return-delta accounting enabled",
+          "severity": "info",
+          "category": "capability",
+          "evidenceIds": [
+            "permission:beforeSwapReturnDelta"
+          ],
+          "explanation": "The address enables callbacks that can return accounting deltas. This is a protocol capability.",
+          "investigation": "Review callback code and compare controlled balance changes.",
+          "status": "OBSERVED",
+          "confidence": "high",
+          "analysisVersion": "hscan-rules/1.0.0",
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        "after": {
+          "id": "CAP-DELTA",
+          "ruleId": "CAP-DELTA",
+          "title": "Return-delta accounting enabled",
+          "severity": "info",
+          "category": "capability",
+          "evidenceIds": [
+            "permission:beforeSwapReturnDelta"
+          ],
+          "explanation": "The address enables callbacks that can return accounting deltas. This is a protocol capability.",
+          "investigation": "Review callback code and compare controlled balance changes.",
+          "status": "OBSERVED",
+          "confidence": "high",
+          "analysisVersion": "hscan-rules/1.0.0",
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        }
+      },
+      {
+        "id": "HOOK-FLAGS",
+        "status": "unchanged",
+        "before": {
+          "id": "HOOK-FLAGS",
+          "ruleId": "HOOK-FLAGS",
+          "title": "Invalid permission dependencies",
+          "severity": "high",
+          "category": "security-indicator",
+          "evidenceIds": [
+            "permissions"
+          ],
+          "explanation": "A return-delta flag lacks its required callback flag. The official PoolManager rejects this combination.",
+          "investigation": "Confirm the address and pool fee configuration.",
+          "status": "OBSERVED",
+          "confidence": "high",
+          "analysisVersion": "hscan-rules/1.0.0",
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        "after": {
+          "id": "HOOK-FLAGS",
+          "ruleId": "HOOK-FLAGS",
+          "title": "Invalid permission dependencies",
+          "severity": "high",
+          "category": "security-indicator",
+          "evidenceIds": [
+            "permissions"
+          ],
+          "explanation": "A return-delta flag lacks its required callback flag. The official PoolManager rejects this combination.",
+          "investigation": "Confirm the address and pool fee configuration.",
+          "status": "OBSERVED",
+          "confidence": "high",
+          "analysisVersion": "hscan-rules/1.0.0",
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        }
+      },
+      {
+        "id": "PROXY",
+        "status": "unchanged",
+        "before": {
+          "id": "PROXY",
+          "ruleId": "PROXY",
+          "title": "Implementation indirection detected",
+          "severity": "medium",
+          "category": "security-indicator",
+          "evidenceIds": [
+            "proxy"
+          ],
+          "explanation": "The observed contract may delegate behavior to a separately deployed implementation.",
+          "investigation": "Inspect upgrade authority and compare implementation hashes across scans.",
+          "status": "OBSERVED",
+          "confidence": "high",
+          "analysisVersion": "hscan-rules/1.0.0",
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        "after": {
+          "id": "PROXY",
+          "ruleId": "PROXY",
+          "title": "Implementation indirection detected",
+          "severity": "medium",
+          "category": "security-indicator",
+          "evidenceIds": [
+            "proxy"
+          ],
+          "explanation": "The observed contract may delegate behavior to a separately deployed implementation.",
+          "investigation": "Inspect upgrade authority and compare implementation hashes across scans.",
+          "status": "OBSERVED",
+          "confidence": "high",
+          "analysisVersion": "hscan-rules/1.0.0",
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        }
+      },
+      {
+        "id": "SOURCE-UNKNOWN",
+        "status": "requires-reassessment",
+        "before": {
+          "id": "SOURCE-UNKNOWN",
+          "ruleId": "SOURCE-UNKNOWN",
+          "title": "Verified source unavailable",
+          "severity": "low",
+          "category": "security-indicator",
+          "evidenceIds": [
+            "source"
+          ],
+          "explanation": "Source verification could not be established. Bytecode alone does not reveal every behavior.",
+          "investigation": "Provide verified source and reproducible compiler settings.",
+          "status": "UNKNOWN",
+          "confidence": "high",
+          "analysisVersion": "hscan-rules/1.0.0",
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        },
+        "after": {
+          "id": "SOURCE-UNKNOWN",
+          "ruleId": "SOURCE-UNKNOWN",
+          "title": "Verified source unavailable",
+          "severity": "low",
+          "category": "security-indicator",
+          "evidenceIds": [
+            "source"
+          ],
+          "explanation": "Source verification could not be established. Bytecode alone does not reveal every behavior.",
+          "investigation": "Provide verified source and reproducible compiler settings.",
+          "status": "UNKNOWN",
+          "confidence": "high",
+          "analysisVersion": "hscan-rules/1.0.0",
+          "limitations": [
+            "An indicator or capability is not a confirmed vulnerability."
+          ]
+        }
+      }
+    ],
+    "limitations": [
+      "Hash changes are not proof of malicious behavior or semantic differences.",
+      "Address-derived permissions remain constant for the same address.",
+      "Unknown observations cannot prove that a finding resolved.",
+      "Only monitored state and detected dependencies are compared."
+    ]
+  }
+}

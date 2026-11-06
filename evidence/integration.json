@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-11-06T09:01:14.433Z",
+  "scope": "LOCAL_ANVIL_INTEGRATION",
+  "checks": [
+    "real deployed hook scan",
+    "PoolManager Initialize association",
+    "persistent rescan history",
+    "deterministic unchanged diff",
+    "honest unavailable 0G state",
+    "canonical passport hash",
+    "tamper rejection",
+    "actual local registry publication and readback"
+  ],
+  "firstScanId": "9255c7b4-1800-4364-8dfd-3ca116153ef6",
+  "secondScanId": "7c77bcda-893f-4d4f-a7ed-04d0e6b46b6e",
+  "passportId": "24aa98a9-4a26-41f1-8148-7242295d0832",
+  "reportHash": "0xb0f796e35c6236c3a70e6324fd08178c9b6687ab809752e7e48326eb8d91fbfb",
+  "registry": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+  "registryTransaction": "0x1f7403c255a8406ecd7e82638517400f330f503b229962b9e497fbedbf87dc01",
+  "blockNumber": "18",
+  "currentFingerprint": "0x48b14162c614a3be00d49cec62936dd64f4c1a092c97c88de718064768f9e929",
+  "uiUrl": "http://127.0.0.1:3000/?scan=7c77bcda-893f-4d4f-a7ed-04d0e6b46b6e",
+  "passportUrl": "http://127.0.0.1:3000/passport/24aa98a9-4a26-41f1-8148-7242295d0832"
+}

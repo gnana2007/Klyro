@@ -1,0 +1,9 @@
+.git
+.next
+node_modules
+.tools
+.env*
+data
+evidence/screenshots
+.hallmark
+test-results

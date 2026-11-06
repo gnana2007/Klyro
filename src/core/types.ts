@@ -46,6 +46,11 @@ export type EvidenceEdge = {
     | "INCLUDED_IN_REPORT";
 };
 export type Finding = {
+  chainId: number;
+  blockNumber: string;
+  timestamp: string;
+  sourceType: "deterministic-analysis";
+  detectionMethod: string;
   id: string;
   ruleId: string;
   category: "capability" | "security-indicator" | "observed-behavior";

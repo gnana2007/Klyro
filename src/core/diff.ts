@@ -74,7 +74,11 @@ export function compareSnapshots(previous: Snapshot, current: Snapshot): Diff {
             ? "requires-reassessment"
             : "resolved";
       else if (rank[b.severity] > rank[a.severity]) status = "worsened";
-      else status = canonical(a) === canonical(b) ? "unchanged" : "changed";
+      else
+        status =
+          comparable(a, previous) === comparable(b, current)
+            ? "unchanged"
+            : "changed";
       return {
         id,
         status,
@@ -96,4 +100,16 @@ export function compareSnapshots(previous: Snapshot, current: Snapshot): Diff {
       "Only monitored state and detected dependencies are compared.",
     ],
   };
+}
+function comparable(f: Finding, s: Snapshot) {
+  const { blockNumber, timestamp, ...content } = f;
+  return canonical({
+    finding: content,
+    evidence: f.evidenceIds.map((id) => {
+      const n = s.evidence.nodes.find((n) => n.id === id);
+      return n
+        ? { id: n.id, status: n.status, method: n.method, data: n.data }
+        : null;
+    }),
+  });
 }

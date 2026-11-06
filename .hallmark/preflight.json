@@ -1,0 +1,18 @@
+{
+  "scanned": "2026-11-06",
+  "findings": {
+    "fonts": "No existing system; Console Host Grotesk and Atkinson Hyperlegible Mono",
+    "palette": "Console graphite tokens",
+    "motion": "State changes only; reduced motion supported",
+    "spacing": "Hallmark shared tokens",
+    "framework": "Initially empty repository, Next.js 16.4.5 selected"
+  },
+  "preserve": [
+    "HSCAN requirements and all genuine evidence"
+  ],
+  "introduce": [
+    "Console material",
+    "interactive evidence trail",
+    "responsive app states"
+  ]
+}
