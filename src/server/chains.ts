@@ -1,5 +1,6 @@
 import { createPublicClient, http } from "viem";
 import { mainnet, sepolia, base, foundry } from "viem/chains";
+import { networkFetch } from "./network";
 export const NETWORKS = [
   {
     id: 1,
@@ -42,6 +43,7 @@ export function clientFor(chainId: number) {
     transport: http(process.env[n.env] || n.url, {
       timeout: 15000,
       retryCount: 1,
+      fetchFn: networkFetch,
     }),
   });
 }

@@ -11,6 +11,7 @@ Hooks customize pool behavior, and their capabilities, code, upgrade paths and a
 The core application is implemented and locally verified. **The full hackathon checklist is not complete.** Actual 0G inference, an authenticated CRE CLI simulation, the participant feedback submission, a human-narrated video and public hosting are outstanding. See [the complete requirement tracker](docs/requirements.md) and [execution evidence](EVIDENCE.md). There are no fabricated IDs, transactions, sponsor successes or screenshots.
 
 - Live local application: [http://127.0.0.1:3000](http://127.0.0.1:3000) while the local server is running.
+- Live backend check: [http://127.0.0.1:3000/api/health/live](http://127.0.0.1:3000/api/health/live). On this host, Ethereum, Sepolia, Base and local Anvil returned current blocks after the native HTTP transport fix. A new Ethereum scan completed at block 26355237 with runtime-matched source and four observed pool associations. [Live backend plan and key setup](docs/backend-live-plan.md).
 - Public hosted demo: not published. Automatic approval review rejected a public tunnel; specific approval is pending.
 - Demo video: pending human recording. [Under-three-minute script](docs/demo-script.md).
 

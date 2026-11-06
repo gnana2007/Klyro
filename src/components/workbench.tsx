@@ -68,7 +68,7 @@ function CopyValue({ value }: { value: string }) {
 }
 export default function Workbench() {
   const [address, setAddress] = useState(""),
-    [chainId, setChainId] = useState(11155111),
+    [chainId, setChainId] = useState(1),
     [scan, setScan] = useState<Snapshot | null>(null),
     [jobId, setJobId] = useState<string | null>(null),
     [stage, setStage] = useState(""),
@@ -603,6 +603,22 @@ export default function Workbench() {
                     matches.
                   </p>
                 </article>
+              </div>
+              <div className="local-fixture">
+                <button
+                  className="quiet"
+                  onClick={() => {
+                    setAddress("0x322dcEc4958C14e021A9F1cD49DF11b9457968cC");
+                    setChainId(1);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                >
+                  Load live Ethereum hook
+                </button>
+                <span className="muted">
+                  Selects a deployed hook address. Scan it to fetch a fresh
+                  block and evidence.
+                </span>
               </div>
               <div className="local-fixture">
                 <button

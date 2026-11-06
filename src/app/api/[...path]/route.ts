@@ -8,6 +8,7 @@ import { compareSnapshots } from "@/core/diff";
 import { explain } from "@/server/ai";
 import { createPassport, verifyPassport } from "@/server/passport";
 import { NETWORKS } from "@/server/chains";
+import { clientFor } from "@/server/chains";
 import { readFileSync } from "node:fs";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +29,35 @@ type Context = { params: Promise<{ path: string[] }> };
 export async function GET(request: Request, context: Context) {
   try {
     const { path: p } = await context.params;
+    if (p[0] === "health" && p[1] === "live") {
+      const checks = await Promise.all(
+        NETWORKS.map(async ({ id, name }) => {
+          try {
+            const client = clientFor(id);
+            const [actualChainId, block] = await Promise.all([
+              client.getChainId(),
+              client.getBlockNumber(),
+            ]);
+            return {
+              id,
+              name,
+              status: actualChainId === id ? "available" : "wrong_chain",
+              blockNumber: block.toString(),
+              checkedAt: new Date().toISOString(),
+            };
+          } catch {
+            return {
+              id,
+              name,
+              status: "unavailable",
+              blockNumber: null,
+              checkedAt: new Date().toISOString(),
+            };
+          }
+        }),
+      );
+      return Response.json({ networks: checks });
+    }
     if (p[0] === "health")
       return Response.json({
         status: "ok",
@@ -141,7 +171,7 @@ export async function POST(request: Request, context: Context) {
               e.message,
             )
               ? e.message
-              : "RPC observation failed. Check endpoint availability and chain selection.";
+              : `Live ${NETWORKS.find((n) => n.id === input.chainId)?.name || "chain"} observation failed during ${db.getJob(id)?.stage || "scan"}. Check the configured RPC endpoint and retry.`;
           db.stageJob(id, "failed", "Scan failed", message);
         }
       });

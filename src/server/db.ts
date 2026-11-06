@@ -31,6 +31,9 @@ CREATE INDEX IF NOT EXISTS hook_history ON snapshots(chain_id,address,created_at
 CREATE TABLE IF NOT EXISTS ai_requests(id TEXT PRIMARY KEY,scan_id TEXT NOT NULL REFERENCES snapshots(id),created_at TEXT NOT NULL,body TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS passports(id TEXT PRIMARY KEY,scan_id TEXT NOT NULL REFERENCES snapshots(id),report_hash TEXT NOT NULL,created_at TEXT NOT NULL,body TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS executions(id TEXT PRIMARY KEY,kind TEXT NOT NULL,created_at TEXT NOT NULL,body TEXT NOT NULL);`);
+    db.exec(
+      "UPDATE jobs SET status='failed',stage='Interrupted',error='Server restarted during scan; retry this live observation.' WHERE status IN ('queued','running')",
+    );
   }
   return db;
 }

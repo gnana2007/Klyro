@@ -3,6 +3,7 @@ import { z } from "zod";
 import { hash } from "../core/canonical";
 import type { Snapshot, Diff, AIResult } from "../core/types";
 import { saveAI } from "./db";
+import { networkFetch } from "./network";
 export const ExplanationSchema = z
   .object({
     executiveSummary: z.string().min(1).max(4000),
@@ -98,7 +99,7 @@ export async function explain(
       throw new Error("Only documented 0G Router endpoints are permitted");
     if (!["private", "verified"].includes(result.trustMode))
       throw new Error("Choose private or verified trust mode");
-    const response = await fetch(base + "/chat/completions", {
+    const response = await networkFetch(base + "/chat/completions", {
       method: "POST",
       headers: {
         Authorization: "Bearer " + process.env.ZERO_G_API_KEY,

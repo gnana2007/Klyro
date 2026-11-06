@@ -1,5 +1,6 @@
 import { keccak256, type Hex } from "viem";
 import type { Snapshot } from "../core/types";
+import { networkFetch } from "./network";
 // Read-only Sourcify v2 API. Legacy v1 was retired; exact observed runtime matching is required.
 export async function verifiedSource(
   chainId: number,
@@ -13,7 +14,7 @@ export async function verifiedSource(
   };
   if (chainId === 31337) return result;
   try {
-    const response = await fetch(
+    const response = await networkFetch(
       `https://sourcify.dev/server/v2/contract/${chainId}/${address}?fields=all`,
       { signal: AbortSignal.timeout(12000) },
     );
