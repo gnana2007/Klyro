@@ -29,25 +29,107 @@ export type Eip1193Provider = {
   removeListener?(event: string, handler: (...args: unknown[]) => void): void;
 };
 
-export const NETWORK_NAMES: Record<number, string> = {
-  1: "Ethereum",
-  11155111: "Sepolia",
-  8453: "Base",
-  31337: "Local Anvil",
-};
+/**
+ * The networks Klyro can read and scan. These are the only ids the server
+ * accepts, so the same table is used to label the wallet chip and to build the
+ * switch-network menu. A wallet on any other chain is shown as unsupported
+ * rather than silently relabelled.
+ */
+export const NETWORKS: { id: number; name: string; short: string }[] = [
+  { id: 1, name: "Ethereum Mainnet", short: "Ethereum" },
+  { id: 11155111, name: "Sepolia", short: "Sepolia" },
+  { id: 8453, name: "Base Mainnet", short: "Base" },
+  { id: 31337, name: "Local Anvil", short: "Anvil" },
+];
 
-function provider(): Eip1193Provider | null {
+export const NETWORK_NAMES: Record<number, string> = Object.fromEntries(
+  NETWORKS.map((n) => [n.id, n.short]),
+);
+
+export function networkName(chainId: number | null | undefined) {
+  if (chainId === null || chainId === undefined) return "Unknown network";
+  return NETWORK_NAMES[chainId] ?? "Chain " + chainId;
+}
+
+export function isSupportedNetwork(chainId: number | null | undefined) {
+  return chainId !== null && chainId !== undefined && chainId in NETWORK_NAMES;
+}
+
+function legacyProvider(): Eip1193Provider | null {
   if (typeof window === "undefined") return null;
   return (window as unknown as { ethereum?: Eip1193Provider }).ethereum ?? null;
 }
 
+/** A wallet announced through EIP-6963. */
+export type DiscoveredWallet = {
+  info: { uuid: string; name: string; icon?: string; rdns?: string };
+  provider: Eip1193Provider;
+};
+
+let discovered: DiscoveredWallet[] = [];
+
+/**
+ * Discover injected wallets.
+ *
+ * `window.ethereum` only exposes one provider, so a user with two wallets
+ * installed (or a wallet that injects late) can end up with no usable provider
+ * and a dead "Connect" button. EIP-6963 fixes that with an event-based
+ * handshake; the legacy property stays as a fallback for wallets that do not
+ * implement it.
+ */
+export function discoverWallets(timeoutMs = 300): Promise<DiscoveredWallet[]> {
+  if (typeof window === "undefined") return Promise.resolve([]);
+  return new Promise((resolve) => {
+    const found = new Map<string, DiscoveredWallet>();
+    const onAnnounce = (event: Event) => {
+      const detail = (event as CustomEvent).detail as DiscoveredWallet | undefined;
+      if (detail?.info?.uuid && detail.provider)
+        found.set(detail.info.uuid, detail);
+    };
+    window.addEventListener("eip6963:announceProvider", onAnnounce);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    setTimeout(() => {
+      window.removeEventListener("eip6963:announceProvider", onAnnounce);
+      discovered = [...found.values()];
+      if (!discovered.length && legacyProvider())
+        discovered = [
+          {
+            info: { uuid: "legacy", name: "Injected wallet" },
+            provider: legacyProvider()!,
+          },
+        ];
+      resolve(discovered);
+    }, timeoutMs);
+  });
+}
+
+let selectedUuid: string | null = null;
+
+/** Pick which discovered wallet the app talks to. */
+export function selectWallet(uuid: string) {
+  selectedUuid = uuid;
+}
+
+export function selectedWallet(): DiscoveredWallet | null {
+  return (
+    discovered.find((w) => w.info.uuid === selectedUuid) ??
+    discovered[0] ??
+    null
+  );
+}
+
+export function walletProvider(): Eip1193Provider | null {
+  return selectedWallet()?.provider ?? legacyProvider();
+}
+
+// Kept for callers that only need a yes/no answer.
 export function walletAvailable() {
-  return provider() !== null;
+  return walletProvider() !== null;
 }
 
 /** True when the user has already authorized this site in the wallet. */
 export async function connectedAccount(): Promise<`0x${string}` | null> {
-  const p = provider();
+  const p = walletProvider();
   if (!p) return null;
   try {
     const accounts = (await p.request({ method: "eth_accounts" })) as string[];
@@ -62,7 +144,7 @@ export async function connectedAccount(): Promise<`0x${string}` | null> {
  * that is not a transaction, and the user can decline it safely.
  */
 export async function connect(): Promise<WalletInfo> {
-  const p = provider();
+  const p = walletProvider();
   if (!p)
     throw new Error(
       "No browser wallet detected. Install MetaMask (or another EVM wallet) and reload this page.",
@@ -87,7 +169,7 @@ export async function connect(): Promise<WalletInfo> {
 }
 
 export async function currentChainId(): Promise<number | null> {
-  const p = provider();
+  const p = walletProvider();
   if (!p) return null;
   try {
     return Number((await p.request({ method: "eth_chainId" })) as string);
@@ -101,7 +183,7 @@ export async function currentChainId(): Promise<number | null> {
  * a surprise network prompt is confusing, so the operator clicks it.
  */
 export async function switchNetwork(chainId: number): Promise<void> {
-  const p = provider();
+  const p = walletProvider();
   if (!p) throw new Error("No browser wallet detected.");
   try {
     await p.request({
@@ -123,7 +205,7 @@ export async function switchNetwork(chainId: number): Promise<void> {
 }
 
 export function onAccountsChanged(handler: (account: `0x${string}` | null) => void) {
-  const p = provider();
+  const p = walletProvider();
   if (!p?.on) return () => {};
   const listener = (...args: unknown[]) => {
     const accounts = args[0] as string[] | undefined;
@@ -134,7 +216,7 @@ export function onAccountsChanged(handler: (account: `0x${string}` | null) => vo
 }
 
 export function onChainChanged(handler: (chainId: number) => void) {
-  const p = provider();
+  const p = walletProvider();
   if (!p?.on) return () => {};
   const listener = (...args: unknown[]) => handler(Number(args[0]));
   p.on("chainChanged", listener);
@@ -158,7 +240,7 @@ export async function writeContract(params: {
   chainId: number;
   value?: bigint;
 }): Promise<`0x${string}`> {
-  const p = provider();
+  const p = walletProvider();
   if (!p) throw new Error("No browser wallet detected.");
   const live = await currentChainId();
   if (live !== params.chainId)

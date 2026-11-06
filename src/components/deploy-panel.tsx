@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { Rocket, FileCheck2, ExternalLink, TriangleAlert, Check } from "lucide-react";
-import { writeContract, type WalletInfo } from "./wallet";
+import { writeContract, walletProvider, type WalletInfo } from "./wallet";
 const short = (v: string) => (v.length > 22 ? v.slice(0, 10) + "…" + v.slice(-6) : v);
 
 /**
@@ -166,8 +166,10 @@ export default function DeployPanel({ wallet }: { wallet: WalletInfo | null }) {
         bytecode: artifact.bytecode,
         args: [wallet.address],
       });
-      const p = (window as unknown as { ethereum: { request(a: unknown): Promise<unknown> } })
-        .ethereum;
+      // Use the same discovered provider as the header button, so a deployment
+      // cannot be sent through a different wallet than the one shown as connected.
+      const p = walletProvider();
+      if (!p) throw new Error("No browser wallet detected.");
       const txHash = (await p.request({
         method: "eth_sendTransaction",
         params: [{ from: wallet.address, data }],
