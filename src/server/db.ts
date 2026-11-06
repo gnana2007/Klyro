@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import type { Snapshot, AIResult, PassportReport } from "../core/types";
+import { MIGRATIONS } from "./schema";
 type Job = {
   id: string;
   chainId: number;
@@ -24,18 +25,57 @@ export function database() {
     db.exec(
       "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;",
     );
-    db.exec(`CREATE TABLE IF NOT EXISTS migrations(version INTEGER PRIMARY KEY); INSERT OR IGNORE INTO migrations VALUES(1);
-CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY, chain_id INTEGER NOT NULL,address TEXT NOT NULL,status TEXT NOT NULL,stage TEXT NOT NULL,error TEXT,created_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS snapshots(id TEXT PRIMARY KEY REFERENCES jobs(id),chain_id INTEGER NOT NULL,address TEXT NOT NULL,block_number TEXT NOT NULL,created_at TEXT NOT NULL,body TEXT NOT NULL);
-CREATE INDEX IF NOT EXISTS hook_history ON snapshots(chain_id,address,created_at);
-CREATE TABLE IF NOT EXISTS ai_requests(id TEXT PRIMARY KEY,scan_id TEXT NOT NULL REFERENCES snapshots(id),created_at TEXT NOT NULL,body TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS passports(id TEXT PRIMARY KEY,scan_id TEXT NOT NULL REFERENCES snapshots(id),report_hash TEXT NOT NULL,created_at TEXT NOT NULL,body TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS executions(id TEXT PRIMARY KEY,kind TEXT NOT NULL,created_at TEXT NOT NULL,body TEXT NOT NULL);`);
+    migrate(db);
     db.exec(
       "UPDATE jobs SET status='failed',stage='Interrupted',error='Server restarted during scan; retry this live observation.' WHERE status IN ('queued','running')",
     );
   }
   return db;
+}
+// Applies every migration newer than the recorded maximum version. The marker
+// table already exists in databases produced by the previous build, so those
+// keep version 1 and only receive additive versions afterwards.
+export function migrate(handle: DatabaseSync) {
+  handle.exec("CREATE TABLE IF NOT EXISTS migrations(version INTEGER PRIMARY KEY, name TEXT, applied_at TEXT)");
+  const columns = handle.prepare("PRAGMA table_info(migrations)").all() as {
+    name: string;
+  }[];
+  // Databases from the previous build have only a `version` column.
+  if (!columns.some((c) => c.name === "name"))
+    handle.exec("ALTER TABLE migrations ADD COLUMN name TEXT");
+  if (!columns.some((c) => c.name === "applied_at"))
+    handle.exec("ALTER TABLE migrations ADD COLUMN applied_at TEXT");
+
+  const row = handle
+    .prepare("SELECT MAX(version) AS v FROM migrations")
+    .get() as { v: number | null } | undefined;
+  const applied = row?.v ?? 0;
+  for (const migration of MIGRATIONS) {
+    if (migration.version <= applied) continue;
+    handle.exec("BEGIN");
+    try {
+      handle.exec(migration.sql);
+      handle
+        .prepare(
+          "INSERT OR REPLACE INTO migrations(version,name,applied_at) VALUES(?,?,?)",
+        )
+        .run(
+          migration.version,
+          migration.name,
+          new Date().toISOString(),
+        );
+      handle.exec("COMMIT");
+    } catch (error) {
+      handle.exec("ROLLBACK");
+      throw error;
+    }
+  }
+}
+export function schemaVersion() {
+  const row = database()
+    .prepare("SELECT MAX(version) AS v FROM migrations")
+    .get() as { v: number | null } | undefined;
+  return row?.v ?? 0;
 }
 export function createJob(job: Job) {
   database()

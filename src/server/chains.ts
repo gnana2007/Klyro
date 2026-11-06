@@ -1,4 +1,4 @@
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, type PublicClient } from "viem";
 import { mainnet, sepolia, base, foundry } from "viem/chains";
 import { networkFetch } from "./network";
 export const NETWORKS = [
@@ -35,15 +35,18 @@ export const NETWORKS = [
     manager: null,
   },
 ] as const;
-export function clientFor(chainId: number) {
+export type KlyroClient = PublicClient;
+export function clientFor(chainId: number): KlyroClient {
   const n = NETWORKS.find((n) => n.id === chainId);
   if (!n) throw new Error("Unsupported chain");
+  // The network table is a union of viem chain definitions; the client is only
+  // ever used through the shared PublicClient surface, so erase the union here.
   return createPublicClient({
-    chain: n.chain,
+    chain: n.chain as Parameters<typeof createPublicClient>[0]["chain"],
     transport: http(process.env[n.env] || n.url, {
       timeout: 15000,
       retryCount: 1,
       fetchFn: networkFetch,
     }),
-  });
+  }) as KlyroClient;
 }
