@@ -82,7 +82,7 @@ export default function PassportView({ id }: { id: string }) {
               </strong>
             </div>
             <div className="fact">
-              <span>0G request ID</span>
+              <span>AI provider request ID</span>
               <code>
                 {data.report.inference?.requestId ??
                   "No successful inference reference"}

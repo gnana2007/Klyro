@@ -171,6 +171,10 @@ export async function explain(
     error: null,
   };
   saveAI(result);
+  // 0G is an optional explainer, never a requirement. A deployment with no 0G
+  // credentials must still scan, record findings and publish reports; it simply
+  // records that no explanation was requested. Nothing is generated in place of
+  // the provider's output.
   if (
     !process.env.ZERO_G_API_KEY ||
     !process.env.ZERO_G_MODEL ||
@@ -178,7 +182,7 @@ export async function explain(
   ) {
     result.status = "unavailable";
     result.error =
-      "Configure a 0G API key and model, and confirm existing free credits. No inference was sent.";
+      "No AI explanation was requested: 0G is not configured (and is optional). The deterministic findings, evidence and hashes above are complete on their own.";
     saveAI(result);
     return result;
   }

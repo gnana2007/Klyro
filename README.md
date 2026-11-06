@@ -27,6 +27,7 @@ The core application is implemented and locally verified. **The full hackathon c
 - Real Uniswap v4 baseline/hook fixture on Foundry and Anvil, with observed callback counts, return-delta fee, balances, receipts and gas.
 - Canonical Hook Passports, browser-side hashing, tamper rejection, registry readback and a separate current-contract match.
 - Official 0G Router integration and CRE workflow code with honest unavailable/blocked states. CRE compiled to WASM; compilation is not successful CLI simulation.
+- A header wallet control that detects injected wallets through EIP-6963 (with `window.ethereum` as a fallback), shows the shortened address and current network, offers an explicit network switch between Ethereum Mainnet (1), Sepolia (11155111), Base Mainnet (8453) and Local Anvil (31337), and follows account and network changes. A rejected prompt is reported as a rejection, and Klyro never switches the user's network on its own.
 - Wallet-signed registry deployment and report publication (`/?view=deploy`). The server prepares the exact transaction and reads the receipt back; it holds no key, and nothing is recorded as deployed or published without a confirmed chain response. Analysis stays usable with no wallet at all.
 - Scheduled hook monitoring with a durable SQLite lease, per-run history, backoff and restart recovery; monitoring survives restarts and never double scans a hook.
 - Live 0G diagnosis: the configured account returns HTTP 402 `pay_no_balance`, so inference is reported unavailable rather than fabricated. The app distinguishes empty credits from a wrong model id.
@@ -62,7 +63,11 @@ For live read-only inspection choose Ethereum, Sepolia or Base and a genuinely d
 
 .env.example documents all server-only settings. RPC_ETHEREUM/RPC_SEPOLIA/RPC_BASE default to public read endpoints. RPC_LOCAL points to Anvil. DATABASE_PATH defaults to ./data/hscan.sqlite. Never put credentials in NEXT_PUBLIC_* variables or commit an environment file.
 
-0G requires ZERO_G_API_KEY, a real ZERO_G_MODEL and confirmation of usable existing free credits through ZERO_G_FREE_CREDITS_CONFIRMED=true. The user authorizes free credits only; the app never deposits funds. The primary scan workflow requests private routing and TEE verification when enabled. Actual x_0g_trace.request_id and provider metadata are persisted. Without 0G, explanation and inference provenance are unavailable. Independent TEE verification is explicitly NOT_PERFORMED.
+An AI explainer is **optional**. With no ZERO_G_API_KEY, no ZERO_G_MODEL or ZERO_G_FREE_CREDITS_CONFIRMED unset, every scan still completes: findings, evidence, diffs, hashes and passports do not depend on a model, and the app records "no explanation requested" rather than generating text. To enable it, set ZERO_G_API_KEY, a real ZERO_G_MODEL, and ZERO_G_FREE_CREDITS_CONFIRMED=true after confirming usable existing free credits. The user authorizes free credits only; the app never deposits funds. When enabled, private routing and TEE verification are requested, and the actual x_0g_trace.request_id and provider metadata are persisted. Independent TEE verification is explicitly NOT_PERFORMED.
+
+Two API contracts the UI relies on. `GET /api/health` answers 200 with `status` (`ok` or `degraded`), `database`, `storage` (`ok`, the path actually in use, `durable`, and a reason), the supported networks and which optional integrations are configured; it answers even when storage is unusable, because that is what the endpoint exists to report. `GET /api/scans` answers `{ scans, unreadable, storage, notice }` so an empty history and a corrupted one are never presented as the same thing. A server-side failure answers 500 (`INTERNAL_ERROR`) and a storage failure 503 (`STORAGE_UNAVAILABLE`); a malformed request is the only thing that answers 400.
+
+On a serverless host with no persistent disk, an unwritable `DATABASE_PATH` falls back to a per-instance temporary database so read-only analysis keeps working. The health endpoint reports that database as non-durable and `/api/scans` reports `storage: "ephemeral"`; history is not preserved across instances. Point `DATABASE_PATH` at a real volume to keep it.
 
 For registry readback set the actual REGISTRY_ADDRESS and REGISTRY_CHAIN_ID. For a local demo these are returned by npm run simulation; they are not public-chain deployments. Set APP_ORIGIN to the deployed origin; optional APP_ADDITIONAL_ORIGINS is an explicit comma-separated allowlist. Set OPERATOR_TOKEN before enabling protected operations in production.
 
@@ -82,7 +87,7 @@ npm run test:e2e
 
 On Windows, browser tests use the installed Microsoft Edge. On Linux/macOS run `npx playwright install chromium`; omit BROWSER_PATH or set it to chromium. BROWSER_PATH may also be an explicit browser executable path.
 
-Verified locally: **40 unit tests, 11 Foundry tests, 6 browser tests, production build, real live-chain scan, local scan/passport/registry integration and actual proxy upgrade detection**. The Foundry count includes ten registry tests and one behavioral test. See EVIDENCE.md for actual runs and initial failures fixed.
+Verified on 7 November 2026: **104 Vitest tests and 28 Playwright tests (desktop and mobile viewports) passed, the production build passed, a real live-chain scan ran with no wallet installed, and local scan/passport/registry integration and proxy upgrade detection remain green**. The wallet tests drive a mock EIP-1193 provider, which exercises Klyro's own behaviour; they are not a test of the MetaMask extension itself, and no real signature is claimed. See EVIDENCE.md for actual runs and failures found and fixed.
 
 The attention index is capped at 100: info=0, low=5, medium=15, high=30. It measures rule-weighted investigation attention, not exploit probability, safety or a full audit result.
 
