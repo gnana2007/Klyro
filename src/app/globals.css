@@ -317,6 +317,8 @@ small {
   }
 }
 .app-topbar {
+  position: relative;
+  z-index: 20;
   height: 74px;
   display: flex;
   align-items: center;

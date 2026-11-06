@@ -30,7 +30,7 @@ The core application is implemented and locally verified. **The full hackathon c
 - Canonical Hook Passports, browser-side hashing, tamper rejection, registry readback and a separate current-contract match.
 - Official 0G Router integration and CRE workflow code with honest unavailable/blocked states. CRE compiled to WASM; compilation is not successful CLI simulation.
 - A header wallet control that detects injected wallets through EIP-6963 (with `window.ethereum` as a fallback), shows the shortened address and current network, offers an explicit network switch between Ethereum Mainnet (1), Sepolia (11155111), Base Mainnet (8453) and Local Anvil (31337), and follows account and network changes. A rejected prompt is reported as a rejection, and Klyro never switches the user's network on its own.
-- Wallet-signed registry deployment and report publication (`/?view=deploy`). The server prepares the exact transaction and reads the receipt back; it holds no key, and nothing is recorded as deployed or published without a confirmed chain response. Analysis stays usable with no wallet at all.
+- Wallet-signed registry deployment and report publication (`/app?view=deploy`). The server prepares the exact transaction and reads the receipt back; it holds no key, and nothing is recorded as deployed or published without a confirmed chain response. Analysis stays usable with no wallet at all.
 - Scheduled hook monitoring with a durable SQLite lease, per-run history, backoff and restart recovery; monitoring survives restarts and never double scans a hook.
 - Live 0G diagnosis: the configured account returns HTTP 402 `pay_no_balance`, so inference is reported unavailable rather than fabricated. The app distinguishes empty credits from a wrong model id.
 
@@ -89,7 +89,7 @@ npm run test:e2e
 
 On Windows, browser tests use the installed Microsoft Edge. On Linux/macOS run `npx playwright install chromium`; omit BROWSER_PATH or set it to chromium. BROWSER_PATH may also be an explicit browser executable path.
 
-Verified on 7 November 2026: **104 Vitest tests and 28 Playwright tests (desktop and mobile viewports) passed, the production build passed, a real live-chain scan ran with no wallet installed, and local scan/passport/registry integration and proxy upgrade detection remain green**. The wallet tests drive a mock EIP-1193 provider, which exercises Klyro's own behaviour; they are not a test of the MetaMask extension itself, and no real signature is claimed. See EVIDENCE.md for actual runs and failures found and fixed.
+Verified on 7 November 2026 after the redesign and backend merge: **104 Vitest tests and 32 Playwright tests (desktop and mobile viewports) passed, the production build passed, a real live-chain scan ran with no wallet installed, and local scan/passport/registry integration and proxy upgrade detection remain green**. The wallet tests drive a mock EIP-1193 provider, which exercises Klyro's own behaviour; they are not a test of the MetaMask extension itself, and no real signature is claimed. See EVIDENCE.md for actual runs and failures found and fixed.
 
 
 The attention index is capped at 100: info=0, low=5, medium=15, high=30. It measures rule-weighted investigation attention, not exploit probability, safety or a full audit result.

@@ -128,6 +128,8 @@ evidence/registry-deployment.json (both chain 31337).
 - A fresh read-only Ethereum scan completed through the unchanged API: hook `0x322dcEc4958C14e021A9F1cD49DF11b9457968cC`, block `26358991`, verified source, all 14 permission flags, two deterministic findings. The UI does not substitute this record for later scans.
 - Optional 0G and authenticated CRE statuses remain pending as documented above. No key, credit, transaction or publication success was invented.
 
+After rebasing this redesign onto the newer backend, wallet and operator work, the merged code passed 104 Vitest tests, the production build and 32 Playwright tests across desktop and mobile. The browser suite exercised the wallet state and network menu in the new application shell, plus scan, evidence, comparison and passport flows. The production server was restarted after the build before the final browser run. The wallet tests use a mock EIP-1193 provider; no real wallet signature is claimed.
+
 
 ## Fresh-checkout CI
 

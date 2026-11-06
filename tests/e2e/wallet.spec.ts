@@ -88,11 +88,11 @@ async function installWallet(
 test("the site loads and scans without any wallet installed", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/app?view=scanner");
   // No provider was installed: the control must still be a real button, and it
   // must not pretend a wallet is connected.
   const connect = page
-    .locator("header.topbar")
+    .locator("header.app-topbar")
     .getByRole("button", { name: /connect wallet/i });
   await expect(connect).toBeVisible();
   await expect(page.getByLabel("Hook address")).toBeVisible();
@@ -107,72 +107,72 @@ test("the site loads and scans without any wallet installed", async ({ page }) =
 
 test("connect shows the shortened address and the current network", async ({ page }) => {
   await installWallet(page, { chainId: 1 });
-  await page.goto("/");
-  await page.locator("header.topbar").getByRole("button", { name: /connect wallet/i }).click();
-  await expect(page.locator("header.topbar .wallet-chip")).toHaveText("0x1111…1111");
-  await expect(page.locator("header.topbar .wallet-net")).toContainText("Ethereum");
+  await page.goto("/app?view=scanner");
+  await page.locator("header.app-topbar").getByRole("button", { name: /connect wallet/i }).click();
+  await expect(page.locator("header.app-topbar .wallet-chip")).toHaveText("0x1111…1111");
+  await expect(page.locator("header.app-topbar .wallet-net")).toContainText("Ethereum");
 });
 
 test("an account switch in the wallet updates the header", async ({ page }) => {
   await installWallet(page);
-  await page.goto("/");
-  await page.locator("header.topbar").getByRole("button", { name: /connect wallet/i }).click();
-  await expect(page.locator("header.topbar .wallet-chip")).toContainText("0x1111");
+  await page.goto("/app?view=scanner");
+  await page.locator("header.app-topbar").getByRole("button", { name: /connect wallet/i }).click();
+  await expect(page.locator("header.app-topbar .wallet-chip")).toContainText("0x1111");
   await page.evaluate(() => {
     const provider = (window as unknown as { ethereum: { __emit(e: string, ...a: unknown[]): void; __accountB: string } }).ethereum;
     provider.__emit("accountsChanged", [provider.__accountB]);
   });
-  await expect(page.locator("header.topbar .wallet-chip")).toContainText("0x2222");
+  await expect(page.locator("header.app-topbar .wallet-chip")).toContainText("0x2222");
 });
 
 test("a network change in the wallet updates the header label", async ({ page }) => {
   await installWallet(page);
-  await page.goto("/");
-  await page.locator("header.topbar").getByRole("button", { name: /connect wallet/i }).click();
-  await expect(page.locator("header.topbar .wallet-net")).toContainText("Ethereum");
+  await page.goto("/app?view=scanner");
+  await page.locator("header.app-topbar").getByRole("button", { name: /connect wallet/i }).click();
+  await expect(page.locator("header.app-topbar .wallet-net")).toContainText("Ethereum");
   await page.evaluate(() => {
     (window as unknown as { ethereum: { __emit(e: string, ...a: unknown[]): void } }).ethereum.__emit(
       "chainChanged",
       "0xaa36a7",
     );
   });
-  await expect(page.locator("header.topbar .wallet-net")).toContainText("Sepolia");
+  await expect(page.locator("header.app-topbar .wallet-net")).toContainText("Sepolia");
 });
 
 test("the network menu switches only after the operator clicks a network", async ({ page }) => {
   await installWallet(page);
-  await page.goto("/");
-  await page.locator("header.topbar").getByRole("button", { name: /connect wallet/i }).click();
+  await page.goto("/app?view=scanner");
+  await page.locator("header.app-topbar").getByRole("button", { name: /connect wallet/i }).click();
   // Nothing is switched on connect: the wallet's own chain is shown as-is.
-  await expect(page.locator("header.topbar .wallet-net")).toContainText("Ethereum");
-  await page.locator("header.topbar .wallet-net").click();
+  await expect(page.locator("header.app-topbar .wallet-net")).toContainText("Ethereum");
+  await page.locator("header.app-topbar .wallet-net").click();
   const menu = page.getByRole("menu", { name: "Switch network" });
   await expect(menu).toBeVisible();
   for (const name of ["Ethereum Mainnet", "Sepolia", "Base Mainnet", "Local Anvil"])
     await expect(menu.getByText(name, { exact: true })).toBeVisible();
   await menu.getByRole("menuitem", { name: /Base Mainnet/ }).click();
-  await expect(page.locator("header.topbar .wallet-net")).toContainText("Base");
+  await expect(page.locator("header.app-topbar .wallet-net")).toContainText("Base");
 });
 
 test("a rejected connection is reported and nothing is connected", async ({ page }) => {
   await installWallet(page, { reject: true });
-  await page.goto("/");
-  await page.locator("header.topbar").getByRole("button", { name: /connect wallet/i }).click();
-  await expect(page.locator("header.topbar .wallet-error")).toContainText(
+  await page.goto("/app?view=scanner");
+  await page.locator("header.app-topbar").getByRole("button", { name: /connect wallet/i }).click();
+  await expect(page.locator("header.app-topbar .wallet-error")).toContainText(
     /rejected the connection/i,
   );
-  await expect(page.locator("header.topbar .wallet-chip")).toHaveCount(0);
+  await expect(page.locator("header.app-topbar .wallet-chip")).toHaveCount(0);
 });
 
 test("disconnect clears the connected address", async ({ page }) => {
   await installWallet(page);
-  await page.goto("/");
-  await page.locator("header.topbar").getByRole("button", { name: /connect wallet/i }).click();
-  await expect(page.locator("header.topbar .wallet-chip")).toBeVisible();
-  await page.locator("header.topbar").getByRole("button", { name: "Disconnect wallet" }).click();
-  await expect(page.locator("header.topbar .wallet-chip")).toHaveCount(0);
+  await page.goto("/app?view=scanner");
+  await page.locator("header.app-topbar").getByRole("button", { name: /connect wallet/i }).click();
+  await expect(page.locator("header.app-topbar .wallet-chip")).toBeVisible();
+  await page.locator("header.app-topbar").getByRole("button", { name: "Disconnect wallet" }).click();
+  await expect(page.locator("header.app-topbar .wallet-chip")).toHaveCount(0);
   await expect(
-    page.locator("header.topbar").getByRole("button", { name: /connect wallet/i }),
+    page.locator("header.app-topbar").getByRole("button", { name: /connect wallet/i }),
   ).toBeVisible();
 });
 

@@ -57,6 +57,7 @@
   --container: 1320px;
   --gutter: clamp(20px, 4vw, 72px);
   --dur-short: 180ms;
+  --z-dropdown: 50;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --color-transparent: transparent;
 }

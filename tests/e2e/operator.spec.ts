@@ -11,7 +11,7 @@ import { test, expect } from "@playwright/test";
 test("operator page explains what it does with no wallet installed", async ({
   page,
 }) => {
-  await page.goto("/?view=deploy");
+  await page.goto("/app?view=deploy");
   await expect(page.getByRole("heading", { name: "Registry deployment and publication" })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "1. Deploy HookRiskRegistry" }),
@@ -32,8 +32,8 @@ test("operator page explains what it does with no wallet installed", async ({
 test("a wallet control is present in the header and analysis needs no wallet", async ({
   page,
 }) => {
-  await page.goto("/");
-  const header = page.locator("header.topbar");
+  await page.goto("/app?view=scanner");
+  const header = page.locator("header.app-topbar");
   await expect(
     header.getByText(/Connect wallet|No wallet/),
   ).toBeVisible();
@@ -45,7 +45,7 @@ test("a wallet control is present in the header and analysis needs no wallet", a
 test("registry publication states that publishing is not a safety verdict", async ({
   page,
 }) => {
-  await page.goto("/?view=deploy");
+  await page.goto("/app?view=deploy");
   await expect(
     page.getByText(/not that the hook\s+is safe|not that the hook is safe/i),
   ).toBeVisible();
