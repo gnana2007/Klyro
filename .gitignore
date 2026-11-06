@@ -13,6 +13,7 @@ contracts/cache/
 test-results/
 playwright-report/
 .hallmark/*-screenshots/
+.hallmark/shots/
 .hallmark/*-report.json
 *.log
 !.gitkeep

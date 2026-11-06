@@ -1,0 +1,14 @@
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+solc_version = "0.8.26"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+libs = ["../node_modules/@uniswap/v4-core"]
+allow_paths = ["../node_modules"]
+code_size_limit = 500000
+gas_limit = 500000000
+remappings = ["v4-core/=../node_modules/@uniswap/v4-core/", "forge-std/=../node_modules/@uniswap/v4-core/lib/forge-std/src/", "solmate/=../node_modules/@uniswap/v4-core/lib/solmate/", "@openzeppelin/=../node_modules/@uniswap/v4-core/lib/openzeppelin-contracts/"]
