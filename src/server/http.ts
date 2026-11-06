@@ -35,11 +35,45 @@ export function isSameOrigin(requestUrl: string, origin: string) {
   }
 }
 
+/**
+ * True when the app is configured to be reachable from outside this machine.
+ *
+ * A production build served on loopback (127.0.0.1/localhost) is single-operator
+ * by construction, so demanding an OPERATOR_TOKEN there only broke local
+ * verification with a 503. Any deployment that points APP_ORIGIN at a public
+ * host still requires the token, and requests carrying a public Origin header
+ * always require it.
+ */
+export function isPublicOrigin() {
+  const origin = process.env.APP_ORIGIN || "http://127.0.0.1:3000";
+  return isPublicHost(origin);
+}
+
+/** A browser Origin header can also reveal that a request came from the internet. */
+function publicOriginHeader(request: Request) {
+  const origin = request.headers.get("origin");
+  return origin ? isPublicHost(origin) : false;
+}
+
+function isPublicHost(origin: string) {
+  try {
+    const host = new URL(origin).hostname;
+    return !(
+      host === "127.0.0.1" ||
+      host === "localhost" ||
+      host === "::1" ||
+      host === "[::1]" ||
+      host.endsWith(".localhost")
+    );
+  } catch {
+    return true;
+  }
+}
+
 export function protect(request: Request, costly = false) {
   const origin = request.headers.get("origin");
-  const expected = process.env.APP_ORIGIN || "http://127.0.0.1:3000";
   const allowedOrigins = new Set([
-    expected,
+    process.env.APP_ORIGIN || "http://127.0.0.1:3000",
     ...(process.env.APP_ADDITIONAL_ORIGINS || "").split(",").filter(Boolean),
   ]);
   // A browser sends Origin on cross-origin requests and on non-GET requests.
@@ -71,7 +105,8 @@ export function protect(request: Request, costly = false) {
   if (
     costly &&
     process.env.NODE_ENV === "production" &&
-    !process.env.OPERATOR_TOKEN
+    !process.env.OPERATOR_TOKEN &&
+    (isPublicOrigin() || publicOriginHeader(request))
   )
     throw new HttpError(
       503,
@@ -111,14 +146,30 @@ export function failure(error: unknown) {
       },
       { status: 400 },
     );
-  return Response.json(
-    {
-      error:
-        error instanceof Error &&
-        /not found|Compare snapshots|Current block/.test(error.message)
-          ? error.message
-          : "Operation failed. Check the input and server configuration.",
-    },
-    { status: 400 },
-  );
+  // viem classifies failures by name, not by string. Map the ones a caller can
+  // act on (a wrong chain, a rejected transaction) instead of flattening every
+  // provider error into one opaque message.
+  const name =
+    error && typeof error === "object" && "name" in error
+      ? String((error as { name: unknown }).name)
+      : "";
+  const message = error instanceof Error ? error.message : "";
+  if (name === "ChainMismatchError")
+    return Response.json(
+      { error: "Configured RPC reports a different chain ID" },
+      { status: 502 },
+    );
+  if (name === "TransactionExecutionError" || name === "ContractFunctionExecutionError")
+    return Response.json(
+      {
+        error:
+          "The chain rejected this call. Check the registry address, the signer and the submitted values.",
+      },
+      { status: 502 },
+    );
+  const safe =
+    /not found|Compare snapshots|Current block|Unsupported|must be/i.test(message)
+      ? message
+      : "Operation failed. Check the input and server configuration.";
+  return Response.json({ error: safe }, { status: 400 });
 }

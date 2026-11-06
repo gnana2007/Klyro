@@ -100,7 +100,34 @@ export function stageJob(
     .prepare("UPDATE jobs SET status=?,stage=?,error=? WHERE id=?")
     .run(status, stage, error, id);
 }
-export function saveSnapshot(s: Snapshot) {
+/**
+ * Persist a snapshot.
+ *
+ * `snapshots.id` has a foreign key to `jobs`, which existed because every scan
+ * used to be started from the UI. Scheduled scans have no job row, and the
+ * constraint rejected them with "FOREIGN KEY constraint failed" — a real bug
+ * that only appeared once monitoring existed.
+ *
+ * The durable record of a scan is the snapshot itself, so this function now
+ * ensures a job row exists for it rather than requiring the caller to create
+ * one first. A scan started from the UI keeps its real job row and stage; a
+ * scheduled scan gets a completed job row marked with its trigger. Both paths
+ * therefore produce identical, queryable history.
+ */
+export function saveSnapshot(s: Snapshot, trigger = "manual") {
+  const existing = database()
+    .prepare("SELECT id FROM jobs WHERE id=?")
+    .get(s.id) as { id: string } | undefined;
+  if (!existing)
+    createJob({
+      id: s.id,
+      chainId: s.chainId,
+      address: s.address,
+      status: "complete",
+      stage: trigger === "schedule" ? "Scheduled scan complete" : "Scan complete",
+      error: null,
+      createdAt: s.scannedAt,
+    });
   database()
     .prepare("INSERT INTO snapshots VALUES(?,?,?,?,?,?)")
     .run(

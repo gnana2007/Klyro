@@ -109,3 +109,52 @@ it("requires the operator token for protected operations", () => {
     else process.env.OPERATOR_TOKEN = before;
   }
 });
+
+it("requires an operator token only when the app is reachable publicly", async () => {
+  const { isPublicOrigin } = await import("../src/server/http");
+  const json = { "content-type": "application/json" };
+  const saved = { ...process.env };
+  try {
+    // A production build on loopback is single-operator: no 503.
+    process.env.APP_ORIGIN = "http://127.0.0.1:3000";
+    delete process.env.OPERATOR_TOKEN;
+    (process.env as Record<string, string>).NODE_ENV = "production";
+    expect(isPublicOrigin()).toBe(false);
+    expect(() =>
+      protect(
+        new Request("http://127.0.0.1:3000/api/ai/explain", {
+          method: "POST",
+          headers: { origin: "http://127.0.0.1:3000", ...json },
+        }),
+        true,
+      ),
+    ).not.toThrow();
+
+    // A public APP_ORIGIN still demands it.
+    process.env.APP_ORIGIN = "https://klyro.example";
+    expect(isPublicOrigin()).toBe(true);
+    expect(() =>
+      protect(
+        new Request("https://klyro.example/api/ai/explain", {
+          method: "POST",
+          headers: { origin: "https://klyro.example", ...json },
+        }),
+        true,
+      ),
+    ).toThrow("OPERATOR_TOKEN");
+
+    // A public browser Origin demands it even if APP_ORIGIN was left local.
+    process.env.APP_ORIGIN = "http://127.0.0.1:3000";
+    expect(() =>
+      protect(
+        new Request("http://127.0.0.1:3000/api/ai/explain", {
+          method: "POST",
+          headers: { origin: "https://someone-else.example", ...json },
+        }),
+        true,
+      ),
+    ).toThrow();
+  } finally {
+    process.env = saved;
+  }
+});

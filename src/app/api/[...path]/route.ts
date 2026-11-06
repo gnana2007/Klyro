@@ -4,11 +4,24 @@ import { z } from "zod";
 import { body, protect, failure, HttpError } from "@/server/http";
 import * as db from "@/server/db";
 import * as repo from "@/server/repository";
-import { indexHookActivity } from "@/server/activity";
-import { scanHook } from "@/server/scan";
+import { runScan } from "@/server/scanner";
+import * as monitor from "@/server/monitor";
+import { schedulerStatus, startScheduler, tick } from "@/server/scheduler";
 import { compareSnapshots } from "@/core/diff";
-import { explain } from "@/server/ai";
-import { createPassport, verifyPassport } from "@/server/passport";
+import { explain, listModels } from "@/server/ai";
+import { createPassport, verifyPassport, publicationIntent } from "@/server/passport";
+import {
+  artifact,
+  confirmDeployment,
+  confirmPublication,
+  getDeployment,
+  getPublication,
+  listDeployments,
+  listPublications,
+  prepareDeployment,
+  registryState,
+  verificationStatus,
+} from "@/server/deploy";
 import { NETWORKS } from "@/server/chains";
 import { clientFor } from "@/server/chains";
 import { readFileSync } from "node:fs";
@@ -17,69 +30,22 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 180;
 
 /**
- * Write the hook row, observed activities and participants for a saved
- * snapshot.
- *
- * The snapshot itself only carries an activity summary (counts and window), so
- * the same bounded window is re-queried here to obtain the individual log rows.
- * Those reads are pinned to the snapshot's recorded range and deduplicated on
- * (chain, tx, logIndex), so a rescan of unchanged chain state inserts zero new
- * rows. A provider failure is thrown so the caller logs it; it never becomes a
- * fabricated activity row.
+ * The browser needs the ABI to encode its own wallet transactions (deploy,
+ * publish, owner configuration). Only the ABI is exposed: no bytecode, no
+ * endpoints, no secrets. The deployment path asks for bytecode separately when
+ * preparing, and the wallet — not this server — sends the deployment.
  */
-async function persistScanRelations(snapshot: import("@/core/types").Snapshot) {
-  repo.upsertHook({
-    chainId: snapshot.chainId,
-    address: snapshot.address,
-    status:
-      snapshot.hookStatus === "UNKNOWN" ? "ADDRESS_ONLY" : snapshot.hookStatus,
-    isHook: snapshot.hookStatus === "POOL_OBSERVED",
-    deployer: snapshot.deployment?.deployer ?? null,
-    deploymentTxHash: snapshot.deployment?.txHash ?? null,
-    deploymentBlock: snapshot.deployment?.blockNumber ?? null,
-    deploymentTimestamp: snapshot.deployment?.timestamp ?? null,
-    scanId: snapshot.id,
-  });
-
-  let inserted = 0;
-  const summary = snapshot.activity;
-  if (summary && summary.status !== "UNKNOWN") {
-    let indexed;
-    try {
-      indexed = await indexHookActivity(clientFor(snapshot.chainId), {
-        chainId: snapshot.chainId,
-        address: getAddress(snapshot.address),
-        fromBlock: BigInt(summary.fromBlock),
-        toBlock: BigInt(summary.toBlock),
-        scanId: snapshot.id,
-      });
-    } catch (error) {
-      throw new Error(
-        "Activity rows could not be recorded: " +
-          (error instanceof Error ? error.message : "unknown error"),
-      );
-    }
-    inserted = repo.recordActivities(indexed.activities);
-    repo.setLastIndexedBlock(
-      snapshot.chainId,
-      snapshot.address,
-      indexed.toBlock,
-    );
-  }
-
-  for (const p of snapshot.participants) {
-    repo.upsertParticipant({
-      chainId: snapshot.chainId,
-      hookAddress: snapshot.address,
-      address: p.address,
-      role: p.role as repo.ParticipantRole,
-      evidence: p.evidence,
-      status: p.status,
-      activityCount: p.activityCount ?? 0,
-    });
-  }
-  return inserted;
+function abiForBrowser() {
+  const art = artifact();
+  return {
+    contractName: art.contractName,
+    solcVersion: art.solcVersion,
+    bytecode: art.bytecode,
+    bytecodeBytes: art.sizeBytes,
+    abi: art.abi,
+  };
 }
+
 const address = z.string().refine((a) => isAddress(a), "Invalid EVM address");
 const ACTIVITY_KINDS = [
   "deployment",
@@ -175,6 +141,11 @@ export async function GET(request: Request, context: Context) {
       const kind = q.get("kind") ?? undefined;
       const limit = q.get("limit") ? Number(q.get("limit")) : 50;
       const offset = q.get("offset") ? Number(q.get("offset")) : 0;
+      const fromBlock = q.get("fromBlock") ?? undefined;
+      const toBlock = q.get("toBlock") ?? undefined;
+      const fromTimestamp = q.get("fromTimestamp") ?? undefined;
+      const toTimestamp = q.get("toTimestamp") ?? undefined;
+      const participant = q.get("address") ?? undefined;
       if (
         kind &&
         !ACTIVITY_KINDS.includes(kind as (typeof ACTIVITY_KINDS)[number])
@@ -182,17 +153,45 @@ export async function GET(request: Request, context: Context) {
         throw new HttpError(400, "Unknown activity kind");
       if (!Number.isFinite(limit) || !Number.isFinite(offset))
         throw new HttpError(400, "limit and offset must be numbers");
+      if (limit < 1 || limit > 500)
+        throw new HttpError(400, "limit must be between 1 and 500");
+      if (offset < 0) throw new HttpError(400, "offset must not be negative");
+      for (const [name, value] of [
+        ["fromBlock", fromBlock],
+        ["toBlock", toBlock],
+      ] as const)
+        if (value !== undefined && !/^\d+$/.test(value))
+          throw new HttpError(400, name + " must be a decimal block number");
+      for (const [name, value] of [
+        ["fromTimestamp", fromTimestamp],
+        ["toTimestamp", toTimestamp],
+      ] as const)
+        if (value !== undefined && Number.isNaN(Date.parse(value)))
+          throw new HttpError(400, name + " must be an ISO 8601 timestamp");
+      if (participant !== undefined && !isAddress(participant))
+        throw new HttpError(400, "address filter must be an EVM address");
       const hookAddress = p[2];
       return Response.json({
         ...repo.listActivities({
           chainId,
           hookAddress,
           kind: kind as repo.ActivityKind | undefined,
-          fromBlock: q.get("fromBlock") ?? undefined,
-          toBlock: q.get("toBlock") ?? undefined,
+          address: participant,
+          fromBlock,
+          toBlock,
+          fromTimestamp,
+          toTimestamp,
           limit,
           offset,
         }),
+        filters: {
+          kind: kind ?? null,
+          address: participant ?? null,
+          fromBlock: fromBlock ?? null,
+          toBlock: toBlock ?? null,
+          fromTimestamp: fromTimestamp ?? null,
+          toTimestamp: toTimestamp ?? null,
+        },
         counts: repo.activityKindCounts(chainId, hookAddress),
         lastIndexedBlock: repo.lastIndexedBlock(chainId, hookAddress),
       });
@@ -218,6 +217,17 @@ export async function GET(request: Request, context: Context) {
       if (!s) throw new HttpError(404, "Scan not found");
       return Response.json(s.evidence);
     }
+    if (p[0] === "passports" && p[1] && p[2] === "publication-intent") {
+      // The route has to be matched before the plain passport route below,
+      // otherwise `passports/<id>/publication-intent` never reaches here and
+      // the caller receives the whole report instead of the five fields a
+      // publish transaction needs.
+      const intent = publicationIntent(p[1]);
+      return Response.json({
+        ...intent,
+        hook: getAddress(intent.hook),
+      });
+    }
     if (p[0] === "passports" && p[1]) {
       const v = db.getPassport(p[1]);
       if (!v) throw new HttpError(404, "Passport not found");
@@ -237,8 +247,68 @@ export async function GET(request: Request, context: Context) {
         ),
       );
     }
+    if (p[0] === "deploy" && p[1] === "artifact")
+      return Response.json(abiForBrowser());
+    if (p[0] === "deploy" && p[1] === "records") {
+      return Response.json({
+        deployments: listDeployments(),
+        publications: listPublications(),
+      });
+    }
+    if (p[0] === "deploy" && p[1] === "record" && p[2] && p[3])
+      return Response.json(
+        p[2] === "deployments" ? getDeployment(p[3]) : getPublication(p[3]),
+      );
+    if (p[0] === "deploy" && p[1] === "verification" && p[2] && p[3])
+      return Response.json(await verificationStatus(Number(p[2]), p[3]));
+    if (p[0] === "deploy" && p[1] === "prepare") {
+      const q = new URL(request.url).searchParams;
+      return Response.json(
+        await prepareDeployment(Number(q.get("chainId")), q.get("owner") || ""),
+      );
+    }
+    if (p[0] === "registry" && p[1] === "state")
+      return Response.json(await registryState());
+    if (p[0] === "ai" && p[1] === "models") {
+      // Free, documented, unauthenticated catalog read. Lets an operator
+      // verify ZERO_G_MODEL before spending a single inference credit.
+      try {
+        const catalog = await listModels();
+        return Response.json({
+          ...catalog,
+          guidance:
+            "Set ZERO_G_MODEL to one of these ids exactly. Prefer a model whose verifiability is TeeML and that supports JSON mode.",
+        });
+      } catch (error) {
+        return Response.json(
+          {
+            error:
+              error instanceof Error
+                ? error.message
+                : "Model catalog is unavailable",
+            configuredModel: process.env.ZERO_G_MODEL || null,
+          },
+          { status: 502 },
+        );
+      }
+    }
     if (p[0] === "ai" && p[1] === "requests" && p[2])
       return Response.json(db.latestAI(p[2]));
+    if (p[0] === "monitors" && p[1] === "status")
+      return Response.json(schedulerStatus());
+    if (p[0] === "monitors" && p[1] === "runs")
+      return Response.json({ runs: monitor.listRuns(Number(p[2] ?? 50)) });
+    if (p[0] === "monitors")
+      return Response.json({
+        monitors: monitor.monitoredHooks(),
+        scheduler: schedulerStatus(),
+        limits: {
+          minIntervalMinutes: monitor.MIN_INTERVAL_MINUTES,
+          maxIntervalMinutes: monitor.MAX_INTERVAL_MINUTES,
+        },
+        notice:
+          "A monitored hook is rescanned on an interval. A failed run backs off and keeps its error; a missed interval is not backfilled.",
+      });
     if (p[0] === "simulations")
       return Response.json(db.executions("simulation"));
     if (p[0] === "cre") return Response.json(db.executions("cre"));
@@ -276,41 +346,114 @@ export async function POST(request: Request, context: Context) {
       });
       setImmediate(async () => {
         try {
-          db.stageJob(id, "running", "Connecting to chain");
-          const s = await scanHook(input, (stage) =>
-            db.stageJob(id, "running", stage),
-          );
-          s.id = id;
-          db.saveSnapshot(s);
-          // Persist the relational record (hook, activities, participants) so
-          // the same observation is queryable across hooks. Failure here is
-          // reported on the job, not hidden: the snapshot above is the hashed
-          // record and stays truthful either way.
-          try {
-            await persistScanRelations(s);
-          } catch (error) {
-            console.error(
-              "relational persistence failed for scan " + id,
-              error instanceof Error ? error.message : error,
-            );
-          }
+          // runScan is shared with the scheduler, so a manual scan and a
+          // monitored scan cannot drift apart.
+          const s = await runScan(input, {
+            jobId: id,
+            onStage: (stage) => db.stageJob(id, "running", stage),
+          });
           if (input.explain) {
             db.stageJob(id, "running", "Requesting 0G explanation");
             await explain(s, null);
             db.stageJob(id, "complete", "Scan complete");
           }
         } catch (e) {
-          const message =
-            e instanceof Error &&
-            /No deployed code|RPC chain|Chain reorganized|Pending block/.test(
-              e.message,
-            )
-              ? e.message
-              : `Live ${NETWORKS.find((n) => n.id === input.chainId)?.name || "chain"} observation failed during ${db.getJob(id)?.stage || "scan"}. Check the configured RPC endpoint and retry.`;
-          db.stageJob(id, "failed", "Scan failed", message);
+          db.stageJob(
+            id,
+            "failed",
+            "Scan failed",
+            e instanceof Error ? e.message : "Scan failed",
+          );
         }
       });
       return Response.json({ id }, { status: 202 });
+    }
+    if (p[0] === "monitors") {
+      protect(request, true);
+      if (p[1] === "run") {
+        // Run one monitor now, using the same lock as the scheduler so a manual
+        // trigger cannot race an automatic one.
+        const input = z
+          .object({ chainId: z.number(), address })
+          .parse(data);
+        const chainId = input.chainId;
+        const hook = monitor.addMonitor({
+          chainId,
+          hookAddress: input.address,
+        });
+        if (!hook) throw new HttpError(400, "Monitor could not be created");
+        if (!monitor.claim(chainId, hook.hookAddress, "manual"))
+          throw new HttpError(409, "This hook is already being scanned");
+        const runId = monitor.recordRunStart({
+          chainId,
+          hookAddress: hook.hookAddress,
+          trigger: "manual",
+        });
+        try {
+          const snapshot = await runScan({
+            chainId,
+            address: hook.hookAddress,
+          });
+          monitor.recordRunFinish(runId, {
+            status: "complete",
+            scanId: snapshot.id,
+            blockNumber: snapshot.blockNumber,
+          });
+          monitor.finishMonitor({
+            chainId,
+            hookAddress: hook.hookAddress,
+            ok: true,
+            blockNumber: snapshot.blockNumber,
+          });
+          return Response.json({ scanId: snapshot.id, blockNumber: snapshot.blockNumber });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "monitored scan failed";
+          monitor.recordRunFinish(runId, { status: "failed", error: message });
+          monitor.finishMonitor({
+            chainId,
+            hookAddress: hook.hookAddress,
+            ok: false,
+            error: message,
+          });
+          throw new HttpError(502, message);
+        } finally {
+          monitor.release(chainId, hook.hookAddress, "manual");
+        }
+      }
+      if (p[1] === "remove") {
+        const input = z.object({ chainId: z.number(), address }).parse(data);
+        return Response.json({
+          removed: monitor.removeMonitor(input.chainId, input.address),
+        });
+      }
+      if (p[1] === "toggle") {
+        const input = z
+          .object({ chainId: z.number(), address, enabled: z.boolean() })
+          .parse(data);
+        const updated = monitor.setEnabled(
+          input.chainId,
+          input.address,
+          input.enabled,
+        );
+        if (!updated) throw new HttpError(404, "Monitor not found");
+        return Response.json(updated);
+      }
+      const { chainId, address: hookAddress, intervalMinutes } = z
+        .object({
+          chainId: z.number().refine(
+            (n) => NETWORKS.some((c) => c.id === n),
+            "Unsupported chain",
+          ),
+          address,
+          intervalMinutes: z.number().optional(),
+        })
+        .parse(data);
+      startScheduler();
+      return Response.json(
+        monitor.addMonitor({ chainId, hookAddress, intervalMinutes }),
+        { status: 201 },
+      );
     }
     if (p[0] === "diffs") {
       const { previousId, currentId } = z
@@ -326,6 +469,52 @@ export async function POST(request: Request, context: Context) {
       const s = db.getSnapshot(scanId);
       if (!s) throw new HttpError(404, "Scan not found");
       return Response.json(await explain(s, null));
+    }
+    if (p[0] === "deploy" && p[1] === "confirm") {
+      // Records the receipt of a transaction the browser wallet already sent.
+      // Nothing is broadcast here, and the record stays `unconfirmed` unless a
+      // receipt is actually read back from the chain.
+      const input = z
+        .object({
+          id: z.string().uuid(),
+          chainId: z.number(),
+          txHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+          owner: address,
+          deployer: address,
+        })
+        .strict()
+        .parse(data);
+      const record = await confirmDeployment({
+        ...input,
+        txHash: input.txHash as `0x${string}`,
+      });
+      return Response.json(record);
+    }
+    if (p[0] === "deploy" && p[1] === "publish-confirm") {
+      const input = z
+        .object({
+          id: z.string().uuid(),
+          chainId: z.number(),
+          registry: address,
+          hook: address,
+          reportHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+          fingerprintHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+          riskLevel: z.number().int().min(0).max(3),
+          passportId: z.string().uuid().nullable(),
+          txHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+          publisher: address,
+        })
+        .strict()
+        .parse(data);
+      return Response.json(
+        await confirmPublication({
+          ...input,
+          registry: input.registry as `0x${string}`,
+          reportHash: input.reportHash as `0x${string}`,
+          fingerprintHash: input.fingerprintHash as `0x${string}`,
+          txHash: input.txHash as `0x${string}`,
+        }),
+      );
     }
     if (p[0] === "passports") {
       const { scanId } = z.object({ scanId: z.string().uuid() }).parse(data);

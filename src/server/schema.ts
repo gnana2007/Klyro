@@ -136,7 +136,123 @@ CREATE TABLE IF NOT EXISTS scan_index_state(
 );
 `;
 
+// v3 adds scheduled monitoring. Additive only: no existing table or column is
+// touched.
+//
+// Why a lock table instead of relying on the in-process scheduler:
+// - A restart, a second replica, or a redeploy can each try to run the same
+//   hook at the same time. The unique key on (chain_id, address) means one
+//   process wins and the others skip, so a hook is never scanned twice at once.
+// - The lease expires (`locked_until`), so a process that dies mid-scan cannot
+//   block a hook forever. A stale lock is reclaimable; a live one is respected.
+// - Every attempt is appended to `monitor_runs`, including failures, so the
+//   history of automatic activity is inspectable and never implied.
+const V3 = `
+CREATE TABLE IF NOT EXISTS monitors(
+  chain_id INTEGER NOT NULL,
+  hook_address TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  interval_minutes INTEGER NOT NULL DEFAULT 60,
+  last_run_at TEXT,
+  last_run_status TEXT,
+  last_run_block TEXT,
+  last_error TEXT,
+  consecutive_failures INTEGER NOT NULL DEFAULT 0,
+  next_run_at TEXT,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY(chain_id,hook_address)
+);
+CREATE INDEX IF NOT EXISTS monitors_due ON monitors(enabled,next_run_at);
+
+CREATE TABLE IF NOT EXISTS monitor_locks(
+  chain_id INTEGER NOT NULL,
+  hook_address TEXT NOT NULL,
+  holder TEXT NOT NULL,
+  locked_until TEXT NOT NULL,
+  PRIMARY KEY(chain_id,hook_address)
+);
+
+CREATE TABLE IF NOT EXISTS monitor_runs(
+  id TEXT PRIMARY KEY,
+  chain_id INTEGER NOT NULL,
+  hook_address TEXT NOT NULL,
+  trigger TEXT NOT NULL,
+  status TEXT NOT NULL,
+  scan_id TEXT,
+  block_number TEXT,
+  stage TEXT,
+  error TEXT,
+  started_at TEXT NOT NULL,
+  finished_at TEXT
+);
+CREATE INDEX IF NOT EXISTS monitor_runs_hook ON monitor_runs(chain_id,hook_address,started_at DESC);
+`;
+
+// v4 adds the scheduler heartbeat.
+//
+// This exists because the scheduler runs in the instrumentation module while
+// API routes may be a separate bundle instance, so an in-memory "is the timer
+// running" flag cannot be trusted across them. The heartbeat is written to
+// SQLite each tick, so any instance can answer from durable state.
+//
+// It is deliberately a NEW version rather than an edit to v3: a database that
+// already recorded v3 would never re-run it, so an edit would silently never
+// apply in production (exactly the failure that exposed this bug here).
+const V4 = `
+CREATE TABLE IF NOT EXISTS scheduler_heartbeat(
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`;
+
+// v5 records wallet-signed contract deployments and report publications.
+//
+// A row is written before the transaction is sent and updated only from an
+// actual receipt, so an interrupted send leaves a visible `unconfirmed` record
+// instead of a silent gap. `address` stays NULL until the chain names one.
+const V5 = `
+CREATE TABLE IF NOT EXISTS deployments(
+  id TEXT PRIMARY KEY,
+  chain_id INTEGER NOT NULL,
+  address TEXT,
+  tx_hash TEXT NOT NULL,
+  owner TEXT NOT NULL,
+  deployer TEXT NOT NULL,
+  status TEXT NOT NULL,
+  block_number TEXT,
+  gas_used TEXT,
+  code_size INTEGER,
+  verified INTEGER NOT NULL DEFAULT 0,
+  error TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS deployments_chain ON deployments(chain_id,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS publications(
+  id TEXT PRIMARY KEY,
+  chain_id INTEGER NOT NULL,
+  registry TEXT NOT NULL,
+  hook TEXT NOT NULL,
+  report_hash TEXT NOT NULL,
+  fingerprint_hash TEXT NOT NULL,
+  risk_level INTEGER NOT NULL,
+  passport_id TEXT,
+  tx_hash TEXT NOT NULL,
+  publisher TEXT NOT NULL,
+  status TEXT NOT NULL,
+  block_number TEXT,
+  gas_used TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS publications_hook ON publications(chain_id,hook,created_at DESC);
+`;
+
 export const MIGRATIONS: Migration[] = [
   { version: 1, name: "hscan-initial", sql: V1 },
   { version: 2, name: "klyro-relational-core", sql: V2 },
+  { version: 3, name: "klyro-monitoring", sql: V3 },
+  { version: 4, name: "klyro-scheduler-heartbeat", sql: V4 },
+  { version: 5, name: "klyro-deployments-and-publications", sql: V5 },
 ];

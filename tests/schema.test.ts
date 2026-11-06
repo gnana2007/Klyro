@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 import { MIGRATIONS } from "../src/server/schema";
 
+const LATEST_VERSION = Math.max(...MIGRATIONS.map((m) => m.version));
+
 // These tests exercise the migration runner directly against in-memory
 // databases. They verify the two states that matter in production: a brand new
 // database, and a database created by the previous HSCAN build.
@@ -51,7 +53,7 @@ describe("schema migrations", () => {
       "scan_index_state",
     ])
       expect(present).toContain(name);
-    expect((db.prepare("SELECT MAX(version) AS v FROM migrations").get() as { v: number }).v).toBe(2);
+    expect((db.prepare("SELECT MAX(version) AS v FROM migrations").get() as { v: number }).v).toBe(LATEST_VERSION);
     db.close();
   });
 
@@ -86,7 +88,7 @@ describe("schema migrations", () => {
     expect(tables(db)).toContain("hooks");
     expect(
       (db.prepare("SELECT MAX(version) AS v FROM migrations").get() as { v: number }).v,
-    ).toBe(2);
+    ).toBe(LATEST_VERSION);
     db.close();
   });
 
@@ -97,7 +99,7 @@ describe("schema migrations", () => {
     expect(
       (db.prepare("SELECT COUNT(*) AS c FROM migrations").get() as { c: number })
         .c,
-    ).toBe(2);
+    ).toBe(LATEST_VERSION);
     db.close();
   });
 
