@@ -11,7 +11,9 @@ Hooks customize pool behavior, and their capabilities, code, upgrade paths and a
 The core application is implemented and locally verified. **The full hackathon checklist is not complete.** Actual 0G inference, an authenticated CRE CLI simulation, the participant feedback submission, a human-narrated video and public hosting are outstanding. See [the complete requirement tracker](docs/requirements.md) and [execution evidence](EVIDENCE.md). There are no fabricated IDs, transactions, sponsor successes or screenshots.
 
 - Live local application: [http://127.0.0.1:3000](http://127.0.0.1:3000) while the local server is running.
+- The editorial product site lives at `/`; the investigation workspace lives at `/app`. Legacy root query links redirect with their query values intact.
 - Live backend check: [http://127.0.0.1:3000/api/health/live](http://127.0.0.1:3000/api/health/live). On this host, Ethereum, Sepolia, Base and local Anvil returned current blocks after the native HTTP transport fix. The latest Ethereum scan completed at block 26356361 with runtime-matched source, two observed pools and four persisted activity rows that survive a rescan without duplication. A Base scan of `0xb200…ce01` demonstrates the honest-unknown path: no pool in the window, invalid flag dependencies reported as `HOOK-FLAGS`, and zero participants rather than invented ones. [Live backend plan and key setup](docs/backend-live-plan.md).
+
 - Public hosted demo: not published. Automatic approval review rejected a public tunnel; specific approval is pending.
 - Demo video: pending human recording. [Under-three-minute script](docs/demo-script.md).
 
@@ -55,7 +57,7 @@ npm run simulation
 npm run dev
 ```
 
-Open http://127.0.0.1:3000 and select **Load local test hook**, then scan. The simulation runner starts an isolated loopback Anvil node when needed and refuses non-local chains. It uses the public Anvil development mnemonic, never a personal wallet. Its local process ID is recorded in data/anvil.pid.
+Open http://127.0.0.1:3000, choose **Investigate a hook**, then select **Load local test hook** and scan. The simulation runner starts an isolated loopback Anvil node when needed and refuses non-local chains. It uses the public Anvil development mnemonic, never a personal wallet. Its local process ID is recorded in data/anvil.pid.
 
 For live read-only inspection choose Ethereum, Sepolia or Base and a genuinely deployed address. The scanner reports UNKNOWN when pool association or source cannot be established. `node --import tsx scripts/discover.ts` discovers a live Ethereum hook from recent official initialization events and saves its actual report.
 
@@ -88,6 +90,7 @@ npm run test:e2e
 On Windows, browser tests use the installed Microsoft Edge. On Linux/macOS run `npx playwright install chromium`; omit BROWSER_PATH or set it to chromium. BROWSER_PATH may also be an explicit browser executable path.
 
 Verified on 7 November 2026: **104 Vitest tests and 28 Playwright tests (desktop and mobile viewports) passed, the production build passed, a real live-chain scan ran with no wallet installed, and local scan/passport/registry integration and proxy upgrade detection remain green**. The wallet tests drive a mock EIP-1193 provider, which exercises Klyro's own behaviour; they are not a test of the MetaMask extension itself, and no real signature is claimed. See EVIDENCE.md for actual runs and failures found and fixed.
+
 
 The attention index is capped at 100: info=0, low=5, medium=15, high=30. It measures rule-weighted investigation attention, not exploit probability, safety or a full audit result.
 

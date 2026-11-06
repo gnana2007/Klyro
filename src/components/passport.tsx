@@ -55,6 +55,13 @@ export default function PassportView({ id }: { id: string }) {
         <p role="status">Loading report…</p>
       ) : (
         <>
+          <div className="passport-masthead">
+            <span className="section-index">Klyro / Research record</span>
+            <strong>Hook Passport</strong>
+            <span>
+              Recorded {new Date(data.report.createdAt).toLocaleString()}
+            </span>
+          </div>
           <div className="facts">
             <div className="fact">
               <span>Hook</span>
@@ -88,6 +95,54 @@ export default function PassportView({ id }: { id: string }) {
                   "No successful inference reference"}
               </code>
             </div>
+            <div className="fact">
+              <span>Source verification</span>
+              <strong>{data.report.snapshot.source.status}</strong>
+            </div>
+            <div className="fact">
+              <span>Implementation</span>
+              <code>
+                {data.report.snapshot.proxy.implementation ||
+                  data.report.snapshot.proxy.kind}
+              </code>
+            </div>
+          </div>
+          <div className="passport-record-grid">
+            <section>
+              <span className="section-index">
+                01 / Permission configuration
+              </span>
+              <h3>Address-derived capabilities</h3>
+              <div className="passport-permissions">
+                {data.report.snapshot.permissions.map((permission) => (
+                  <div key={permission.name}>
+                    <code>{permission.name}</code>
+                    <span>{permission.enabled ? "Enabled" : "Disabled"}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+            <section>
+              <span className="section-index">02 / Deterministic findings</span>
+              <h3>Evidence-linked observations</h3>
+              {data.report.snapshot.findings.length ? (
+                data.report.snapshot.findings.map((finding) => (
+                  <div className="passport-finding" key={finding.id}>
+                    <span className={"badge " + finding.severity}>
+                      {finding.severity}
+                    </span>
+                    <strong>{finding.title}</strong>
+                    <p>{finding.explanation}</p>
+                    <small>{finding.evidenceIds.join(" / ")}</small>
+                  </div>
+                ))
+              ) : (
+                <p>
+                  No rules fired within the inspected scope. This does not
+                  establish safety.
+                </p>
+              )}
+            </section>
           </div>
           <div className="passport-actions">
             <button

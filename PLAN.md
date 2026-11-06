@@ -29,6 +29,5 @@ P8 core is implemented and verified locally, including browser hashing, tamper d
 ## Design
 
 Audience: developers, liquidity providers and reviewers. Primary action: scan a hook.
-Hallmark Console: restrained graphite, amber operator actions, cool instrument readings; tables, trails and comparisons.
-The evidence trail is the signature. All data areas have loading, empty, error and full states.
+The 7 November redesign uses the user's architectural editorial direction: warm ivory, parchment, charcoal, olive, terracotta, Instrument Serif headings, DM Sans UI and IBM Plex Mono metadata. The public landing page is at `/`, with the real-data workbench at `/app` and legacy scan query links redirected. The evidence trail and historical comparison are the signatures. All data areas have loading, empty, error and full states.
 Keep historical report authenticity separate from current code/configuration matching.

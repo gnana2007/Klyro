@@ -119,6 +119,16 @@ Not claimed: a public testnet deployment, authenticated CRE simulation, or any
 0G inference output. See evidence/wallet-deployment.json and
 evidence/registry-deployment.json (both chain 31337).
 
+## Editorial product redesign — 7 November 2026
+
+- Audited Next.js routes, client workbench, typed APIs, Node SQLite worker, live viem scans, evidence/diff/passport models, Solidity registry, CRE workflow and 0G gating before editing. The later remote wallet and operator integration was preserved during the merge.
+- Added an architectural editorial landing page and `/app` workspace; legacy root query links redirect. Reused the actual scan, history, diff, evidence, passport, simulation, registry and health APIs. The workbench groups history by chain/address and computes overview counts only from returned saved records.
+- Ran `npm run typecheck`, `npm test` (**41 passed**), `npm run contracts:test -- -vv` (**11 passed**), `npm run build` (**passed**) and `npm run test:e2e` (**10 desktop/mobile journeys passed**, including actual local-chain scan, evidence, passport and comparison navigation).
+- Hallmark source and render checks passed with **0 FAIL / 0 WARN** for landing, dashboard, comparison, scanner and saved passport. One named-look waiver records the exact user-specified palette and serif. Initial mobile overflow, low-contrast labels and navigation test failures were fixed before the final checks.
+- A fresh read-only Ethereum scan completed through the unchanged API: hook `0x322dcEc4958C14e021A9F1cD49DF11b9457968cC`, block `26358991`, verified source, all 14 permission flags, two deterministic findings. The UI does not substitute this record for later scans.
+- Optional 0G and authenticated CRE statuses remain pending as documented above. No key, credit, transaction or publication success was invented.
+
+
 ## Fresh-checkout CI
 
 GitHub Actions run https://github.com/gnana2007/Klyro/actions/runs/42192091905 completed successfully for c3c13341f5cef1eb43c8524718b153eb935bc964. The fresh Linux runner completed npm ci, type checks, 40 unit tests, production build, 11 Foundry tests, CRE WASM compilation, local simulation and six browser tests. Later commits are independently checked by the same workflow; the live Actions status is authoritative.

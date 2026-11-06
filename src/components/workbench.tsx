@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { Snapshot, Diff, AIResult, EvidenceNode } from "@/core/types";
+import { compareSnapshots } from "@/core/diff";
 import PassportView from "./passport";
 import DeployPanel from "./deploy-panel";
 import type { WalletInfo } from "./wallet";
@@ -77,9 +78,13 @@ export default function Workbench() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [selectedFinding, setSelectedFinding] = useState(""),
+    [selectedPermission, setSelectedPermission] = useState(""),
     [tab, setTab] = useState("overview"),
-    [view, setView] = useState("scanner"),
+    [view, setView] = useState("dashboard"),
     [scans, setScans] = useState<Snapshot[]>([]),
+    [scansLoading, setScansLoading] = useState(true),
+    [scansError, setScansError] = useState(""),
+    [passportCount, setPassportCount] = useState<number | null>(null),
     [inference, setInference] = useState<AIResult | null>(null),
     [passport, setPassport] = useState<string | null>(null),
     [fixtureBusy, setFixtureBusy] = useState(false),
@@ -94,8 +99,9 @@ export default function Workbench() {
     } | null>(null);
   useEffect(() => {
     const q = new URLSearchParams(location.search);
-    setView(q.get("view") || "scanner");
+    setView(q.get("view") || (q.has("scan") ? "scanner" : "dashboard"));
     setTab(q.get("tab") || "overview");
+    setSelectedFinding(q.get("finding") || "");
     const id = q.get("scan");
     if (id) setJobId(id);
     // Scan history answers `{ scans, unreadable, storage, notice }`. Reading the
@@ -103,10 +109,17 @@ export default function Workbench() {
     // a degraded one from being reported the same way.
     api("scans")
       .then((value) => setScans(Array.isArray(value) ? value : value.scans || []))
-      .catch((e) => setHistoryError((e as Error).message));
+      .catch((e) => {
+        setHistoryError((e as Error).message);
+        setScansError((e as Error).message);
+      })
+      .finally(() => setScansLoading(false));
     api("health")
       .then(setHealth)
       .catch((e) => setHealthError((e as Error).message));
+    api("passports")
+      .then((items: unknown[]) => setPassportCount(items.length))
+      .catch(() => {});
   }, []);
   // The Operate view needs the same wallet state the header shows. The header
   // publishes it through a window event because it is rendered by the root
@@ -226,7 +239,14 @@ export default function Workbench() {
   }
   return (
     <main id="main" className="container">
-      {view === "history" ? (
+      {view === "dashboard" ? (
+        <Dashboard
+          scans={scans}
+          loading={scansLoading}
+          error={scansError}
+          passportCount={passportCount}
+        />
+      ) : view === "history" ? (
         <>
           <div className="page-title">
             <GitCompareArrows />
@@ -235,13 +255,24 @@ export default function Workbench() {
               <p>Every scan retains its observed block and evidence.</p>
             </div>
           </div>
-          {historyError && (
-            <p className="notice error" role="alert">
-              Scan history could not be loaded: {historyError}
-            </p>
-          )}
-          <History scans={scans} />
+          <History scans={scans} loading={scansLoading} error={scansError} />
         </>
+      ) : view === "comparisons" ? (
+        <ComparisonWorkspace
+          scans={scans}
+          loading={scansLoading}
+          error={scansError}
+        />
+      ) : view === "evidence" ? (
+        <EvidenceWorkspace
+          scans={scans}
+          loading={scansLoading}
+          error={scansError}
+        />
+      ) : view === "passports" ? (
+        <PassportIndex />
+      ) : view === "settings" ? (
+        <WorkspaceSettings health={health} />
       ) : view === "registry" ? (
         <Registry />
       ) : view === "deploy" ? (
@@ -263,28 +294,29 @@ export default function Workbench() {
       ) : (
         <>
           {!scan && (
-            <section className="intro">
+            <section className="intro scanner-intro">
               <div>
+                <span className="section-index">New investigation / 01</span>
                 <h1>
                   Know what your <br />
                   hook does.
                 </h1>
                 <p>
-                  Inspect permissions, follow the evidence, and compare what
-                  changed.
+                  Enter a deployed contract address to capture a block-specific
+                  investigation with inspectable evidence.
                 </p>
               </div>
               <div className="intro-record">
-                <span>Three questions. One evidence trail.</span>
+                <span>Investigation sequence</span>
                 <ol>
                   <li>
-                    <span>01</span>What can this hook do?
+                    <span>01</span>Capture contract state
                   </li>
                   <li>
-                    <span>02</span>What do the observations support?
+                    <span>02</span>Trace findings to evidence
                   </li>
                   <li>
-                    <span>03</span>Does this version still match?
+                    <span>03</span>Compare later observations
                   </li>
                 </ol>
               </div>
@@ -362,7 +394,12 @@ export default function Workbench() {
           </form>
           {busy && (
             <div className="progress" role="status">
-              <span className="loading-bar" />
+              <span className="loading-graph" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
               <span>{stage}</span>
             </div>
           )}
@@ -389,6 +426,9 @@ export default function Workbench() {
                   </h2>
                   <p>
                     Observed {new Date(scan.blockTimestamp).toUTCString()}{" "}
+                    <span className="badge">
+                      Source {scan.source.status.toLowerCase()}
+                    </span>{" "}
                     <span className="badge">
                       {scan.compatibility === "POOL_OBSERVED"
                         ? "Pool association observed"
@@ -427,6 +467,18 @@ export default function Workbench() {
                     <section>
                       <h2>Observed contract</h2>
                       <div className="facts">
+                        <Value label="Contract address" value={scan.address} />
+                        <Value
+                          label="Network"
+                          value={
+                            chains.find((c) => c.id === scan.chainId)?.name ||
+                            String(scan.chainId)
+                          }
+                        />
+                        <Value
+                          label="Scan time"
+                          value={new Date(scan.scannedAt).toUTCString()}
+                        />
                         <Value
                           label="Runtime bytecode hash"
                           value={scan.runtimeHash}
@@ -588,9 +640,28 @@ export default function Workbench() {
                         </thead>
                         <tbody>
                           {scan.permissions.map((p) => (
-                            <tr key={p.name}>
+                            <tr
+                              key={p.name}
+                              className={
+                                selectedPermission === p.name
+                                  ? "permission-selected"
+                                  : ""
+                              }
+                            >
                               <td>
-                                <code>{p.name}</code>
+                                <button
+                                  className="permission-button"
+                                  aria-expanded={selectedPermission === p.name}
+                                  onClick={() =>
+                                    setSelectedPermission(
+                                      selectedPermission === p.name
+                                        ? ""
+                                        : p.name,
+                                    )
+                                  }
+                                >
+                                  <code>{p.name}</code>
+                                </button>
                               </td>
                               <td>
                                 <span
@@ -607,12 +678,136 @@ export default function Workbench() {
                         </tbody>
                       </table>
                     </div>
+                    {selectedPermission &&
+                      (() => {
+                        const permission = scan.permissions.find(
+                          (p) => p.name === selectedPermission,
+                        );
+                        const evidence = scan.evidence.nodes.find(
+                          (n) => n.id === "permission:" + selectedPermission,
+                        );
+                        if (!permission) return null;
+                        return (
+                          <div className="permission-detail">
+                            <div>
+                              <span className="section-index">
+                                Permission / bit {permission.bit}
+                              </span>
+                              <h3>{permission.name}</h3>
+                              <p>{permission.description}</p>
+                            </div>
+                            <div>
+                              <strong>
+                                {permission.enabled ? "Enabled" : "Disabled"}
+                              </strong>
+                              <span>
+                                Callback stage:{" "}
+                                {permission.name.startsWith("before")
+                                  ? "Before"
+                                  : "After"}
+                                {permission.name.includes("ReturnDelta")
+                                  ? " / return delta"
+                                  : ""}
+                              </span>
+                              <span>
+                                Evidence:{" "}
+                                {evidence?.source || "Address-derived bit"}
+                              </span>
+                              <button
+                                className="editorial-link"
+                                onClick={() => {
+                                  setSelectedFinding("");
+                                  chooseTab("evidence");
+                                }}
+                              >
+                                Inspect evidence graph <ArrowRight size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                  </section>
+                  <section className="contract-research">
+                    <div className="section-head">
+                      <h2>Contract &amp; dependencies</h2>
+                      <span className="muted">Block-pinned observations</span>
+                    </div>
+                    <div className="research-grid">
+                      <article>
+                        <span className="section-index">Implementation</span>
+                        <div className="facts">
+                          <Value label="Proxy type" value={scan.proxy.kind} />
+                          <Value
+                            label="Implementation"
+                            value={
+                              scan.proxy.implementation || "Not identified"
+                            }
+                          />
+                          <Value
+                            label="Admin"
+                            value={scan.proxy.admin || "Not identified"}
+                          />
+                          <Value
+                            label="Observed pools"
+                            value={String(scan.poolContext.pools.length)}
+                          />
+                        </div>
+                      </article>
+                      <article>
+                        <span className="section-index">
+                          External address candidates
+                        </span>
+                        {scan.dependencies.length ? (
+                          <ul className="dependency-list">
+                            {scan.dependencies.map((candidate) => (
+                              <li key={candidate}>
+                                <code>{candidate}</code>
+                                <span>
+                                  Static bytecode candidate; execution
+                                  unconfirmed.
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="muted">
+                            No address candidates identified by the bounded
+                            opcode inspection.
+                          </p>
+                        )}
+                      </article>
+                    </div>
+                    <div className="source-panel">
+                      <span className="section-index">
+                        Source investigation
+                      </span>
+                      <p>
+                        Runtime match: <strong>{scan.source.status}</strong>.{" "}
+                        {scan.source.files.length} source file
+                        {scan.source.files.length === 1 ? "" : "s"} available
+                        from Sourcify.
+                      </p>
+                      {scan.source.files.map((file) => (
+                        <details key={file.name}>
+                          <summary>{file.name}</summary>
+                          <pre className="code-block">{file.content}</pre>
+                        </details>
+                      ))}
+                    </div>
                   </section>
                   <Limitations items={scan.limitations} />
                 </>
               )}
               {tab === "evidence" && (
-                <EvidenceGraph scan={scan} initialFinding={selectedFinding} />
+                <EvidenceGraph
+                  scan={scan}
+                  initialFinding={selectedFinding}
+                  initialNode={
+                    typeof window !== "undefined"
+                      ? new URLSearchParams(location.search).get("node") || ""
+                      : ""
+                  }
+                />
               )}
               {tab === "diff" && <DiffView scan={scan} />}
               {tab === "simulation" && <Simulations />}
@@ -704,41 +899,8 @@ export default function Workbench() {
                 ))}
             </>
           ) : (
-            <section className="onboarding">
-              <p className="protocol-description">
-                Uniswap v4 hooks are contracts that customize pool operations.
-                Their permissions describe what they can do; code observations
-                and controlled execution help explain what they actually do.
-              </p>
-              <h2>From an address to inspectable evidence</h2>
-              <div className="steps">
-                <article>
-                  <h3>Inspect capabilities</h3>
-                  <p>
-                    Decode all fourteen flags and record code at an exact block.
-                  </p>
-                </article>
-                <article>
-                  <h3>Follow the evidence</h3>
-                  <p>
-                    Open each finding and inspect the observations behind it.
-                  </p>
-                </article>
-                <article>
-                  <h3>Compare observations</h3>
-                  <p>
-                    Track implementation changes and evidence that needs
-                    reassessment.
-                  </p>
-                </article>
-                <article>
-                  <h3>Verify the report</h3>
-                  <p>
-                    Check report integrity and whether the current version
-                    matches.
-                  </p>
-                </article>
-              </div>
+            <section className="onboarding scanner-utilities">
+              <h2>Try a known address</h2>
               <div className="local-fixture">
                 <button
                   className="quiet"
@@ -780,8 +942,9 @@ export default function Workbench() {
                   Uses an actual deployment from the local simulation runner.
                 </span>
               </div>
-              <h2 className="workflow-heading">Analysis and publication</h2>
-              <div className="table-wrap">
+              <details className="workflow-details">
+              <summary>Analysis and publication status</summary>
+              <div className="table-wrap workflow-table-wrap">
                 <table>
                   <thead>
                     <tr>
@@ -825,25 +988,11 @@ export default function Workbench() {
                   </tbody>
                 </table>
               </div>
+              </details>
             </section>
           )}
         </>
       )}
-      <details className="operator">
-        <summary>Operator access</summary>
-        <p>
-          For a protected deployment, enter its operator token. It stays in this
-          browser session.
-        </p>
-        <input
-          aria-label="Operator token"
-          type="password"
-          autoComplete="off"
-          onChange={(e) =>
-            sessionStorage.setItem("hscan-operator", e.target.value)
-          }
-        />
-      </details>
     </main>
   );
 }
@@ -910,14 +1059,16 @@ function FindingList({
 function EvidenceGraph({
   scan,
   initialFinding,
+  initialNode = "",
 }: {
   scan: Snapshot;
   initialFinding: string;
+  initialNode?: string;
 }) {
   const [findingId, setFindingId] = useState(
       initialFinding || scan.findings[0]?.id || "",
     ),
-    [nodeId, setNodeId] = useState("");
+    [nodeId, setNodeId] = useState(initialNode);
   const finding = scan.findings.find((f) => f.id === findingId);
   const evidence = scan.evidence.nodes.filter((n) =>
     finding?.evidenceIds.includes(n.id),
@@ -1208,48 +1359,658 @@ function ActivityPanel({ scan }: { scan: Snapshot }) {
     </section>
   );
 }
-function History({ scans }: { scans: Snapshot[] }) {
-  return scans.length ? (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Hook</th>
-            <th>Network</th>
-            <th>Block</th>
-            <th>Scan time (UTC)</th>
-            <th>Observations</th>
-          </tr>
-        </thead>
-        <tbody>
-          {scans.map((s) => (
-            <tr key={s.id}>
-              <td>
-                <a className="measured" href={"/?scan=" + s.id}>
-                  {short(s.address)}
-                </a>
-              </td>
-              <td>{chains.find((c) => c.id === s.chainId)?.name}</td>
-              <td>
-                <code>{s.blockNumber}</code>
-              </td>
-              <td>{new Date(s.scannedAt).toUTCString()}</td>
-              <td>{s.findings.length} findings</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  ) : (
-    <Empty
-      title="No scans yet"
-      text="Scan a deployed contract to start its block-specific history."
-      action={
-        <a className="primary" href="/">
-          Open scanner
+function groupedScans(scans: Snapshot[]) {
+  const groups = new Map<string, Snapshot[]>();
+  for (const scan of scans) {
+    const key = `${scan.chainId}:${scan.address.toLowerCase()}`;
+    groups.set(key, [...(groups.get(key) || []), scan]);
+  }
+  return [...groups.values()].map((group) =>
+    group.sort((a, b) =>
+      BigInt(a.blockNumber) > BigInt(b.blockNumber)
+        ? -1
+        : BigInt(a.blockNumber) < BigInt(b.blockNumber)
+          ? 1
+          : b.scannedAt.localeCompare(a.scannedAt),
+    ),
+  );
+}
+function Dashboard({
+  scans,
+  loading,
+  error,
+  passportCount,
+}: {
+  scans: Snapshot[];
+  loading: boolean;
+  error: string;
+  passportCount: number | null;
+}) {
+  const groups = groupedScans(scans);
+  const latest = groups
+    .map((group) => group[0])
+    .sort((a, b) => b.scannedAt.localeCompare(a.scannedAt));
+  const rescanned = groups.filter((group) => group.length > 1);
+  const changed = rescanned.filter((group) => {
+    try {
+      return compareSnapshots(group[1], group[0]).changes.some(
+        (change) => change.status === "changed",
+      );
+    } catch {
+      return false;
+    }
+  });
+  const networks = chains.filter((chain) =>
+    scans.some((scan) => scan.chainId === chain.id),
+  );
+  return (
+    <section className="dashboard">
+      <div className="workspace-heading">
+        <div>
+          <span className="section-index">Investigation overview</span>
+          <h1>Every hook has a history.</h1>
+          <p>
+            Start with an address, then follow its evidence across observations.
+          </p>
+        </div>
+        <a className="primary" href="/app?view=scanner">
+          New investigation <ArrowRight size={17} />
+
         </a>
-      }
-    />
+      </div>
+      {error && (
+        <p className="notice error" role="alert">
+          {error}
+        </p>
+      )}
+      {loading ? (
+        <p role="status" className="notice">
+          Loading saved investigations…
+        </p>
+      ) : (
+        <>
+          <div className="dashboard-stats">
+            <div>
+              <span>Hooks in recent scans</span>
+              <strong>{groups.length}</strong>
+            </div>
+            <div>
+              <span>Rescanned in recent scans</span>
+              <strong>{rescanned.length}</strong>
+            </div>
+            <div>
+              <span>Detected recent changes</span>
+              <strong>{changed.length}</strong>
+            </div>
+            <div>
+              <span>Recent Hook Passports</span>
+              <strong>{passportCount === null ? "—" : passportCount}</strong>
+            </div>
+          </div>
+          <div className="dashboard-main">
+            <div>
+              <div className="section-head">
+                <h2>Recent investigations</h2>
+                <a className="editorial-link" href="/app?view=history">
+                  View all history <ArrowRight size={16} />
+                </a>
+              </div>
+              {latest.length ? (
+                <div className="table-wrap">
+                  <table className="recent-table">
+                    <thead>
+                      <tr>
+                        <th>Contract</th>
+                        <th>Network</th>
+                        <th>Last scanned</th>
+                        <th>Implementation</th>
+                        <th>Findings</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {latest.slice(0, 8).map((scan) => (
+                        <tr key={scan.id}>
+                          <td data-label="Contract">
+                            <code title={scan.address}>
+                              {short(scan.address)}
+                            </code>
+                          </td>
+                          <td data-label="Network">
+                            {chains.find((c) => c.id === scan.chainId)?.name}
+                          </td>
+                          <td data-label="Last scanned">
+                            {new Date(scan.scannedAt).toLocaleDateString()}
+                          </td>
+                          <td data-label="Implementation">
+                            <code>
+                              {scan.proxy.implementation
+                                ? short(scan.proxy.implementation)
+                                : scan.proxy.kind === "direct"
+                                  ? "Direct"
+                                  : "Unknown"}
+                            </code>
+                          </td>
+                          <td data-label="Findings">{scan.findings.length}</td>
+                          <td data-label="Status">
+                            <span className="badge">
+                              {scan.source.status.toLowerCase()}
+                            </span>
+                          </td>
+                          <td data-label="Action">
+                            <a href={"/app?scan=" + scan.id}>Open</a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <Empty
+                  title="No investigations yet"
+                  text="Enter a deployed hook address to create the first block-specific investigation."
+                  action={
+                    <a className="primary" href="/app?view=scanner">
+                      Investigate a hook
+                    </a>
+                  }
+                />
+              )}
+            </div>
+            <aside className="dashboard-aside">
+              <span className="section-index">Observed networks</span>
+              {networks.length ? (
+                networks.map((network) => (
+                  <div key={network.id}>
+                    <strong>{network.name}</strong>
+                    <span>
+                      {
+                        scans.filter((scan) => scan.chainId === network.id)
+                          .length
+                      }{" "}
+                      saved scans
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p>No network observations yet.</p>
+              )}
+              <span className="section-index">Rescanned hooks</span>
+              {rescanned.length ? (
+                rescanned.slice(0, 3).map((group) => (
+                  <a
+                    key={group[0].id}
+                    href={"/app?scan=" + group[0].id + "&tab=diff"}
+                  >
+                    <code>{short(group[0].address)}</code>
+                    <span>
+                      {group.length} observations <ArrowRight size={14} />
+                    </span>
+                  </a>
+                ))
+              ) : (
+                <p>Rescan a hook to compare versions.</p>
+              )}
+            </aside>
+          </div>
+        </>
+      )}
+      <p className="scope-note">
+        Counts cover the 30 most recent scans and 50 most recent passports
+        returned by this workspace. They do not measure contract safety or all
+        on-chain activity.
+      </p>
+    </section>
+  );
+}
+function History({
+  scans,
+  loading = false,
+  error = "",
+}: {
+  scans: Snapshot[];
+  loading?: boolean;
+  error?: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [network, setNetwork] = useState("all");
+  const groups = groupedScans(scans).filter(
+    (group) =>
+      group[0].address.toLowerCase().includes(query.toLowerCase()) &&
+      (network === "all" || String(group[0].chainId) === network),
+  );
+  if (loading)
+    return (
+      <p role="status" className="notice">
+        Loading scan history…
+      </p>
+    );
+  if (error)
+    return (
+      <p role="alert" className="notice error">
+        {error}
+      </p>
+    );
+  return (
+    <>
+      <div className="history-filters">
+        <label>
+          Search contract
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="0x…"
+          />
+        </label>
+        <label>
+          Network
+          <select
+            value={network}
+            onChange={(event) => setNetwork(event.target.value)}
+          >
+            <option value="all">All networks</option>
+            {chains.map((chain) => (
+              <option key={chain.id} value={chain.id}>
+                {chain.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {groups.length ? (
+        groups.map((group) => (
+          <section
+            className="history-group"
+            key={`${group[0].chainId}:${group[0].address}`}
+          >
+            <div className="history-group-head">
+              <div>
+                <strong>{short(group[0].address)}</strong>
+                <span>
+                  {chains.find((chain) => chain.id === group[0].chainId)?.name}{" "}
+                  / {group.length} observation{group.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <a href={"/app?scan=" + group[0].id + "&tab=diff"}>
+                Compare history <ArrowRight size={15} />
+              </a>
+            </div>
+            <div className="table-wrap">
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Snapshot</th>
+                    <th>Block</th>
+                    <th>Scanned</th>
+                    <th>Implementation</th>
+                    <th>Findings</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.map((scan, index) => (
+                    <tr key={scan.id}>
+                      <td data-label="Snapshot">
+                        {index === 0 ? "Latest" : "Earlier"}
+                      </td>
+                      <td data-label="Block">
+                        <code>{scan.blockNumber}</code>
+                      </td>
+                      <td data-label="Scanned">
+                        {new Date(scan.scannedAt).toLocaleString()}
+                      </td>
+                      <td data-label="Implementation">
+                        <code>
+                          {scan.proxy.implementation
+                            ? short(scan.proxy.implementation)
+                            : scan.proxy.kind}
+                        </code>
+                      </td>
+                      <td data-label="Findings">{scan.findings.length}</td>
+                      <td data-label="Action">
+                        <a href={"/app?scan=" + scan.id}>Open investigation</a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ))
+      ) : (
+        <Empty
+          title={scans.length ? "No matching contracts" : "No scans yet"}
+          text={
+            scans.length
+              ? "Try another address or network filter."
+              : "Scan a deployed contract to start its block-specific history."
+          }
+          action={
+            !scans.length ? (
+              <a className="primary" href="/app?view=scanner">
+                Open scanner
+              </a>
+            ) : undefined
+          }
+        />
+      )}
+    </>
+  );
+}
+function ComparisonWorkspace({
+  scans,
+  loading,
+  error,
+}: {
+  scans: Snapshot[];
+  loading: boolean;
+  error: string;
+}) {
+  const [currentId, setCurrentId] = useState("");
+  const candidates = groupedScans(scans)
+    .filter((group) => group.length > 1)
+    .flatMap((group) => group.slice(0, -1));
+  const current =
+    candidates.find((scan) => scan.id === currentId) || candidates[0];
+  return (
+    <section>
+      <div className="workspace-heading">
+        <div>
+          <span className="section-index">
+            Signature / historical comparison
+          </span>
+          <h1>What changed between observations?</h1>
+          <p>
+            Choose a saved hook snapshot, then compare it with an earlier
+            observation of the same address.
+          </p>
+        </div>
+      </div>
+      {loading ? (
+        <p role="status" className="notice">
+          Loading comparisons…
+        </p>
+      ) : error ? (
+        <p role="alert" className="notice error">
+          {error}
+        </p>
+      ) : current ? (
+        <>
+          <label className="workspace-select">
+            Current snapshot
+            <select
+              value={current.id}
+              onChange={(event) => setCurrentId(event.target.value)}
+            >
+              {candidates.map((scan) => (
+                <option key={scan.id} value={scan.id}>
+                  {short(scan.address)} /{" "}
+                  {chains.find((chain) => chain.id === scan.chainId)?.name} /
+                  block {scan.blockNumber}
+                </option>
+              ))}
+            </select>
+          </label>
+          <DiffView key={current.id} scan={current} />
+        </>
+      ) : (
+        <Empty
+          title="Two scans of one hook are needed"
+          text="Investigate a deployed address, then rescan it to make a real historical comparison."
+          action={
+            <a className="primary" href="/app?view=scanner">
+              Start an investigation
+            </a>
+          }
+        />
+      )}
+    </section>
+  );
+}
+function EvidenceWorkspace({
+  scans,
+  loading,
+  error,
+}: {
+  scans: Snapshot[];
+  loading: boolean;
+  error: string;
+}) {
+  const [id, setId] = useState("");
+  const scan = scans.find((item) => item.id === id) || scans[0];
+  return (
+    <section>
+      <div className="workspace-heading">
+        <div>
+          <span className="section-index">Evidence graph</span>
+          <h1>Follow every relationship.</h1>
+          <p>
+            Choose an actual investigation to browse its findings, observations
+            and graph edges.
+          </p>
+        </div>
+      </div>
+      {loading ? (
+        <p role="status" className="notice">
+          Loading evidence…
+        </p>
+      ) : error ? (
+        <p role="alert" className="notice error">
+          {error}
+        </p>
+      ) : scan ? (
+        <>
+          <label className="workspace-select">
+            Investigation
+            <select
+              value={scan.id}
+              onChange={(event) => setId(event.target.value)}
+            >
+              {scans.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {short(item.address)} / block {item.blockNumber}
+                </option>
+              ))}
+            </select>
+          </label>
+          <EvidenceGraph key={scan.id} scan={scan} initialFinding="" />
+        </>
+      ) : (
+        <Empty
+          title="No evidence recorded yet"
+          text="A completed live investigation creates the navigable evidence graph."
+          action={
+            <a className="primary" href="/app?view=scanner">
+              Investigate a hook
+            </a>
+          }
+        />
+      )}
+    </section>
+  );
+}
+function PassportIndex() {
+  const [items, setItems] = useState<
+    { id: string; scan_id: string; report_hash: string; created_at: string }[]
+  >([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    api("passports")
+      .then(setItems)
+      .catch(() => setError("Saved passports could not be loaded."))
+      .finally(() => setLoading(false));
+  }, []);
+  return (
+    <section>
+      <div className="workspace-heading">
+        <div>
+          <span className="section-index">Preserved analysis</span>
+          <h1>Hook Passports</h1>
+          <p>
+            Immutable reports with canonical hashes. Registry and current-state
+            checks remain separate.
+          </p>
+        </div>
+      </div>
+      {loading ? (
+        <p role="status" className="notice">
+          Loading passports…
+        </p>
+      ) : error ? (
+        <p role="alert" className="notice error">
+          {error}
+        </p>
+      ) : items.length ? (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Created</th>
+                <th>Report hash</th>
+                <th>Investigation</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id}>
+                  <td>{new Date(item.created_at).toLocaleString()}</td>
+                  <td>
+                    <code title={item.report_hash}>
+                      {short(item.report_hash)}
+                    </code>
+                  </td>
+                  <td>
+                    <a href={"/app?scan=" + item.scan_id}>Open scan</a>
+                  </td>
+                  <td>
+                    <a href={"/passport/" + item.id}>View passport</a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <Empty
+          title="No passports saved"
+          text="Complete an investigation and save its report to create a reproducible Hook Passport."
+          action={
+            <a className="primary" href="/app?view=scanner">
+              New investigation
+            </a>
+          }
+        />
+      )}
+    </section>
+  );
+}
+function WorkspaceSettings({
+  health,
+}: {
+  health: {
+    inferenceConfigured: boolean;
+    freeCreditsConfirmed: boolean;
+  } | null;
+}) {
+  const [live, setLive] = useState<{
+    networks: {
+      id: number;
+      name: string;
+      status: string;
+      blockNumber: string | null;
+      checkedAt: string;
+    }[];
+  } | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    api("health/live")
+      .then(setLive)
+      .catch(() => setError("Live network check unavailable."));
+  }, []);
+  return (
+    <section>
+      <div className="workspace-heading">
+        <div>
+          <span className="section-index">Environment / read-only status</span>
+          <h1>Workspace settings</h1>
+          <p>
+            Network reads, optional explanations and reporting integrations.
+          </p>
+        </div>
+      </div>
+      <div className="settings-grid">
+        <article>
+          <h2>Network connectivity</h2>
+          {error && <p role="alert">{error}</p>}
+          {live
+            ? live.networks.map((network) => (
+                <div className="setting-row" key={network.id}>
+                  <strong>{network.name}</strong>
+                  <span>
+                    {network.status}
+                    {network.blockNumber
+                      ? ` / block ${network.blockNumber}`
+                      : ""}
+                  </span>
+                </div>
+              ))
+            : !error && <p role="status">Checking configured RPC endpoints…</p>}
+          <p className="muted">
+            Checked on request. Public RPC URLs may be rate limited.
+          </p>
+        </article>
+        <article>
+          <h2>Integration status</h2>
+          <div className="setting-row">
+            <strong>Uniswap v4</strong>
+            <span>Read-only scans operational when RPC is available</span>
+          </div>
+          <div className="setting-row">
+            <strong>0G explanations</strong>
+            <span>
+              {health?.inferenceConfigured && health?.freeCreditsConfirmed
+                ? "Configured; inspect actual request evidence"
+                : "Not configured for existing free credits"}
+            </span>
+          </div>
+          <div className="setting-row">
+            <strong>Chainlink CRE</strong>
+            <span>Workflow compiled; authenticated simulation pending</span>
+          </div>
+          <div className="setting-row">
+            <strong>Report registry</strong>
+            <a href="/app?view=registry">Inspect saved publications</a>
+          </div>
+          <p>
+            <a
+              href="https://github.com/gnana2007/Klyro/blob/main/docs/backend-live-plan.md"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Environment setup guide <ArrowRight size={14} />
+            </a>
+          </p>
+        </article>
+      </div>
+      <details className="operator">
+        <summary>Operator access</summary>
+        <p>
+          For a protected deployment, enter its operator token. It stays in this
+          browser session.
+        </p>
+        <input
+          aria-label="Operator token"
+          type="password"
+          autoComplete="off"
+          onChange={(event) =>
+            sessionStorage.setItem("hscan-operator", event.target.value)
+          }
+        />
+      </details>
+    </section>
   );
 }
 function DiffView({ scan }: { scan: Snapshot }) {
@@ -1257,15 +2018,23 @@ function DiffView({ scan }: { scan: Snapshot }) {
     [previous, setPrevious] = useState(""),
     [diff, setDiff] = useState<Diff | null>(null),
     [error, setError] = useState("");
+  const prior = history.find((item) => item.id === previous);
   useEffect(() => {
-    api(`hooks/${scan.chainId}/${scan.address}/history`).then((h) => {
-      setHistory(h);
-      setPrevious(
-        h.find(
+    api(`hooks/${scan.chainId}/${scan.address}/history`)
+      .then((h) => {
+        setHistory(h);
+        const earlier = h.filter(
           (s: Snapshot) => s.id !== scan.id && s.scannedAt < scan.scannedAt,
-        )?.id || "",
-      );
-    });
+        );
+        setPrevious(
+          earlier.find(
+            (s: Snapshot) => BigInt(s.blockNumber) < BigInt(scan.blockNumber),
+          )?.id ||
+            earlier[0]?.id ||
+            "",
+        );
+      })
+      .catch(() => setError("Historical scans could not be loaded."));
   }, [scan]);
   async function compare() {
     try {
@@ -1302,9 +2071,42 @@ function DiffView({ scan }: { scan: Snapshot }) {
           Compare versions
         </button>
       </div>
+      {prior && (
+        <div className="snapshot-pair">
+          <article>
+            <span className="section-index">Previous snapshot</span>
+            <strong>Block {prior.blockNumber}</strong>
+            <code>{prior.runtimeHash}</code>
+            <small>{new Date(prior.scannedAt).toLocaleString()}</small>
+          </article>
+          <article>
+            <span className="section-index">Current snapshot</span>
+            <strong>Block {scan.blockNumber}</strong>
+            <code>{scan.runtimeHash}</code>
+            <small>{new Date(scan.scannedAt).toLocaleString()}</small>
+          </article>
+        </div>
+      )}
       {error && <p role="alert">{error}</p>}
       {diff ? (
         <>
+          <div className="diff-summary">
+            <strong>
+              {
+                diff.changes.filter((change) => change.status === "changed")
+                  .length
+              }{" "}
+              confirmed observation changes
+            </strong>
+            <span>
+              {
+                diff.changes.filter(
+                  (change) => change.status === "inconclusive",
+                ).length
+              }{" "}
+              inconclusive checks. A change is not itself malicious.
+            </span>
+          </div>
           <div className="table-wrap">
             <table>
               <thead>
@@ -1321,7 +2123,23 @@ function DiffView({ scan }: { scan: Snapshot }) {
                     key={c.field}
                     className={c.status === "changed" ? "changed" : ""}
                   >
-                    <td>{c.field}</td>
+                    <td>
+                      <strong>{c.field}</strong>
+                      {c.evidenceIds.map((id) => (
+                        <a
+                          className="evidence-link"
+                          key={id}
+                          href={
+                            "/app?scan=" +
+                            scan.id +
+                            "&tab=evidence&node=" +
+                            encodeURIComponent(id)
+                          }
+                        >
+                          Inspect {id} evidence <ArrowRight size={13} />
+                        </a>
+                      ))}
+                    </td>
                     <td>
                       <code>
                         {typeof c.before === "object"
@@ -1346,9 +2164,18 @@ function DiffView({ scan }: { scan: Snapshot }) {
           </div>
           <h3>Finding changes</h3>
           {diff.findings.map((f) => (
-            <p key={f.id}>
+            <p className="finding-change" key={f.id}>
               <span className="badge">{f.status}</span>{" "}
-              {f.after?.title || f.before?.title}
+              <a
+                href={
+                  "/app?scan=" +
+                  scan.id +
+                  "&tab=evidence&finding=" +
+                  encodeURIComponent(f.id)
+                }
+              >
+                {f.after?.title || f.before?.title}
+              </a>
             </p>
           ))}
           <Limitations items={diff.limitations} />
@@ -1361,8 +2188,10 @@ function DiffView({ scan }: { scan: Snapshot }) {
           text="Rescan this address, then compare it with an earlier scan. A different block alone is not a code change."
         />
       )}
-      <h3>Scan history</h3>
-      <History scans={history} />
+      <details className="comparison-history">
+        <summary>Browse all {history.length} saved observations</summary>
+        <History scans={history} />
+      </details>
     </section>
   );
 }

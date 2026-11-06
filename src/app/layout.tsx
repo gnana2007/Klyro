@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import WalletButton from "@/components/wallet-button";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "Klyro — Hook intelligence, with evidence",
+  title: "Klyro — Uniswap v4 hook investigation",
   description:
-    "Inspect Uniswap v4 hook permissions, trace findings, compare versions and verify analysis passports.",
+    "Understand what your hooks can do. Know what has changed. Follow the evidence.",
 };
 export default function RootLayout({
   children,
@@ -17,40 +16,7 @@ export default function RootLayout({
         <a className="skip" href="#main">
           Skip to content
         </a>
-        <header className="topbar">
-          <div className="topbar-inner">
-            <a className="wordmark" href="/" aria-label="Klyro home">
-              <span className="brand-mark" aria-hidden="true">
-                ⌗
-              </span>
-              Klyro
-            </a>
-            <nav aria-label="Main navigation">
-              <a href="/">Scanner</a>
-              <a href="/?view=history">Scan history</a>
-              <a href="/?view=registry">Registry</a>
-              <a href="/?view=deploy">Operate</a>
-              <a
-                href="https://github.com/gnana2007/Klyro"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Source code
-              </a>
-            </nav>
-            <span className="header-note">Uniswap v4 intelligence</span>
-            <WalletButton />
-          </div>
-        </header>
         {children}
-        <footer>
-          <div className="footer-inner">
-            <span>
-              Know what a hook does. See what changed. Verify what you trust.
-            </span>
-            <span>Bounded analysis. Every claim needs evidence.</span>
-          </div>
-        </footer>
       </body>
     </html>
   );
