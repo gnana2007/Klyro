@@ -15,7 +15,30 @@ import { scanHook } from "./scan";
 import { clientFor } from "./chains";
 export const REGISTRY_ABI = parseAbi([
   "function publications(bytes32) view returns (address hook,uint256 chainId,bytes32 fingerprintHash,bytes32 reportHash,uint8 riskLevel,uint64 publishedAt,address publisher)",
+  "function latest(bytes32) view returns (bytes32)",
+  "function publishers(address) view returns (bool)",
+  "event Published(address indexed hook,uint256 indexed chainId,bytes32 indexed reportHash,bytes32 fingerprintHash,uint8 riskLevel,address publisher)",
 ]);
+/** The action a publish transaction would perform, with no side effects. */
+export function publicationIntent(passportId: string) {
+  const stored = getPassport(passportId);
+  if (!stored)
+    throw new Error("Passport not found");
+  const s = stored.report.snapshot;
+  // Deliberately constant. The registry's riskLevel field must not be filled
+  // from model output: rules decide severity, and an unpublished passport has
+  // no deterministic severity sum to hand. 0 means "not rated by this record".
+  const risk = 0;
+  return {
+    passportId,
+    hook: s.address,
+    chainId: s.chainId,
+    fingerprintHash: s.stateFingerprint as Hex,
+    reportHash: stored.reportHash as Hex,
+    riskLevel: risk,
+    note: "riskLevel is a coarse provenance tag supplied by the publisher, not a safety rating. The registry stores it verbatim.",
+  };
+}
 export function createPassport(scanId: string) {
   const snapshot = getSnapshot(scanId);
   if (!snapshot) throw new Error("Scan not found");

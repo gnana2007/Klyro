@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import WalletButton from "@/components/wallet-button";
 import "./globals.css";
 export const metadata: Metadata = {
   title: "Klyro — Hook intelligence, with evidence",
@@ -28,6 +29,7 @@ export default function RootLayout({
               <a href="/">Scanner</a>
               <a href="/?view=history">Scan history</a>
               <a href="/?view=registry">Registry</a>
+              <a href="/?view=deploy">Operate</a>
               <a
                 href="https://github.com/gnana2007/Klyro"
                 target="_blank"
@@ -37,6 +39,7 @@ export default function RootLayout({
               </a>
             </nav>
             <span className="header-note">Uniswap v4 intelligence</span>
+            <WalletButton />
           </div>
         </header>
         {children}

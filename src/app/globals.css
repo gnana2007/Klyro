@@ -403,6 +403,52 @@ select {
 .icon-button:hover {
   color: var(--color-accent);
 }
+/* Wallet control. Read-only pages work without it; connecting authorizes no
+ * transaction, so the control stays visually quiet next to the navigation. */
+.wallet-control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+.wallet-button {
+  min-height: 36px;
+  padding: var(--space-2xs) var(--space-sm);
+  font-size: 13px;
+  gap: var(--space-2xs);
+}
+.wallet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-xs);
+  border: 1px solid var(--color-rule-2);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-outlier);
+  font-size: 13px;
+}
+.wallet-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+.wallet-net--unsupported {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+.wallet-hint {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+.wallet-error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  color: var(--color-error);
+  font-size: 12px;
+  max-width: 320px;
+}
 .badge {
   display: inline-block;
   border: 1px solid var(--color-rule-2);
@@ -1025,5 +1071,138 @@ select {
   }
   .pager {
     flex-wrap: wrap;
+  }
+}
+
+/* Operator surfaces: registry deployment and publication.
+ * Reads as a console: numbered steps, monospace facts, receipt-first results. */
+.deploy {
+  display: grid;
+  gap: var(--space-lg);
+}
+.deploy .page-title {
+  margin-bottom: 0;
+}
+.deploy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+.panel {
+  border: 1px solid var(--color-rule-2);
+  border-radius: var(--radius-card);
+  padding: var(--space-lg);
+  background: var(--color-paper-2);
+  min-width: 0;
+}
+.panel h2 {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-title);
+}
+.panel dl.facts {
+  border-top: 0;
+  margin: 0 0 var(--space-md);
+}
+.panel dl.facts > div {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: var(--space-md);
+  padding: var(--space-2xs) 0;
+  border-bottom: 1px solid var(--color-rule);
+  font-size: 13px;
+}
+.panel dt {
+  color: var(--color-muted);
+}
+.panel dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.panel dd code {
+  color: var(--color-cool);
+  font-size: 12px;
+}
+.field-row {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+.field-row label,
+.panel label {
+  display: grid;
+  gap: var(--space-2xs);
+  font-size: 13px;
+  color: var(--color-muted);
+}
+.notes {
+  margin: 0 0 var(--space-md);
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--color-muted);
+  display: grid;
+  gap: var(--space-2xs);
+}
+.record {
+  border-top: 1px solid var(--color-rule-2);
+  padding-top: var(--space-sm);
+  margin-top: var(--space-md);
+}
+.record h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 13px;
+  margin: 0 0 var(--space-xs);
+}
+.record-status {
+  font-family: var(--font-outlier);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+}
+.record-ok {
+  color: var(--color-success);
+}
+.record-error {
+  color: var(--color-error);
+}
+.record-wait {
+  color: var(--color-muted);
+}
+.button-row {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin: var(--space-xs) 0;
+}
+.button-row a,
+.button-row button {
+  min-height: 36px;
+  font-size: 13px;
+  padding: var(--space-2xs) var(--space-sm);
+}
+.next-step {
+  font-size: 12.5px;
+  color: var(--color-muted);
+  border-left: 2px solid var(--color-accent);
+  padding-left: var(--space-sm);
+}
+.publish {
+  margin-top: var(--space-lg);
+}
+@media (max-width: 960px) {
+  .deploy-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .panel dl.facts > div {
+    grid-template-columns: 1fr;
+    gap: var(--space-3xs);
   }
 }

@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import type { Snapshot, Diff, AIResult, EvidenceNode } from "@/core/types";
 import PassportView from "./passport";
+import DeployPanel from "./deploy-panel";
+import type { WalletInfo } from "./wallet";
 const chains = [
   { id: 1, name: "Ethereum" },
   { id: 11155111, name: "Sepolia" },
@@ -99,6 +101,7 @@ export default function Workbench() {
       .then(setHealth)
       .catch(() => {});
   }, []);
+  const [wallet, setWallet] = useState<WalletInfo | null>(null);
   useEffect(() => {
     if (!jobId) return;
     let active = true;
@@ -210,6 +213,22 @@ export default function Workbench() {
         </>
       ) : view === "registry" ? (
         <Registry />
+      ) : view === "deploy" ? (
+        <>
+          <div className="page-title">
+            <Network />
+            <div>
+              <h1>Operate</h1>
+              <p>
+                Wallet-signed deployment and publication. Connecting a wallet
+                here grants nothing until you approve a specific transaction.
+              </p>
+            </div>
+          </div>
+          {/* The header already carries the wallet control; repeating it here
+              duplicated the status and left an empty band above the panels. */}
+          <DeployPanel wallet={wallet} />
+        </>
       ) : (
         <>
           {!scan && (
