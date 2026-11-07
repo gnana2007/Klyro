@@ -23,7 +23,8 @@ The core application is implemented and locally verified. **The full hackathon c
 - All fourteen address permission flags, dependency checks, exact clone/EIP-1967/beacon handling and explicit unknown states.
 - Deterministic evidence-linked findings and a documented attention index; AI never defines risk scores or changes findings.
 - SQLite scan history, rescan comparison, proxy-aware implementation changes and finding reassessment.
-- Interactive evidence navigation with method, block, timestamp, raw observation and limitations.
+- Bounded Sepolia hook discovery from actual PoolManager `Initialize` logs, one-click selection, interval monitoring controls (start, pause, resume, end), and an on-chain ENS `.eth` name lookup. An ENS name must already resolve to an address; Klyro does not register a company namespace. Discovery windows and monitor intervals are explicit, with no claim of complete chain history.
+- Interactive evidence navigation with a connected visual map, method, block, timestamp, raw observation and limitations. Historical comparisons include an attention-index trajectory derived only from saved snapshots.
 - Hook identity panel: hook status derived from PoolManager `Initialize` events, bounded deployment lookup, owner getter, proxy admin and manager.
 - Participant ledger where every role carries the evidence string that justified it, and a paginated activity table persisted in SQLite and filtered by kind, block range and address.
 - Real Uniswap v4 baseline/hook fixture on Foundry and Anvil, with observed callback counts, return-delta fee, balances, receipts and gas.

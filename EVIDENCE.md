@@ -131,6 +131,13 @@ evidence/registry-deployment.json (both chain 31337).
 After rebasing this redesign onto the newer backend, wallet and operator work, the merged code passed 104 Vitest tests, the production build and 32 Playwright tests across desktop and mobile. The browser suite exercised the wallet state and network menu in the new application shell, plus scan, evidence, comparison and passport flows. The production server was restarted after the build before the final browser run. The wallet tests use a mock EIP-1193 provider; no real wallet signature is claimed.
 
 
+## Sepolia discovery, ENS and visual evidence — 7 November 2026
+
+- Read-only Sepolia RPC check of a 400-block PoolManager `Initialize` window completed at block 12080065 and returned zero nonzero hook addresses. The interface reports this as an empty bounded window, not absence of hooks on Sepolia.
+- The live ENS endpoint resolved `vitalik.eth` through Ethereum mainnet to `0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`; invalid discovery windows return HTTP 400. ENS subnames require an existing on-chain address record controlled by the namespace owner.
+- The redesigned scanner can select discovered hook addresses without typing, and the existing monitor API now has start, pause, resume and end controls. Monitoring runs at configured intervals and does not backfill missed periods.
+- The evidence view draws actual finding-to-observation links; the comparison chart plots saved attention scores across observed blocks. Neither visual claims a safety verdict.
+
 ## Fresh-checkout CI
 
 GitHub Actions run https://github.com/gnana2007/Klyro/actions/runs/42192091905 completed successfully for c3c13341f5cef1eb43c8524718b153eb935bc964. The fresh Linux runner completed npm ci, type checks, 40 unit tests, production build, 11 Foundry tests, CRE WASM compilation, local simulation and six browser tests. Later commits are independently checked by the same workflow; the live Actions status is authoritative.

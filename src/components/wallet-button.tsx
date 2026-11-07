@@ -239,7 +239,7 @@ export default function WalletButton({
         {menuOpen && (
           <div className="wallet-menu" role="menu" aria-label="Switch network">
             <span className="wallet-menu-title">Switch network</span>
-            {NETWORKS.map((n) => (
+            {NETWORKS.filter((n) => n.id !== 31337 || wallet.chainId === 31337).map((n) => (
               <button
                 key={n.id}
                 role="menuitem"

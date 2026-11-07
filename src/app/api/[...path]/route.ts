@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { isAddress, getAddress } from "viem";
+import { normalize } from "viem/ens";
 import { z } from "zod";
 import { body, protect, failure, HttpError } from "@/server/http";
 import * as db from "@/server/db";
@@ -24,6 +25,7 @@ import {
 } from "@/server/deploy";
 import { NETWORKS } from "@/server/chains";
 import { clientFor } from "@/server/chains";
+import { discoverSepoliaHooks } from "@/server/discovery";
 import { readFileSync } from "node:fs";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,6 +73,23 @@ type Context = { params: Promise<{ path: string[] }> };
 export async function GET(request: Request, context: Context) {
   try {
     const { path: p } = await context.params;
+    if (p[0] === "discover" && p[1] === "sepolia") {
+      const blocks = Number(new URL(request.url).searchParams.get("blocks") || 2000);
+      if (!Number.isInteger(blocks) || blocks < 100 || blocks > 10000)
+        throw new HttpError(400, "Choose a window of 100–10000 blocks");
+      return Response.json(await discoverSepoliaHooks(blocks));
+    }
+    if (p[0] === "ens" && p[1] === "resolve") {
+      const input = new URL(request.url).searchParams.get("name")?.trim() || "";
+      if (input.length > 255 || !input.toLowerCase().endsWith(".eth"))
+        throw new HttpError(400, "Enter an ENS .eth name or subname");
+      let name: string;
+      try { name = normalize(input); }
+      catch { throw new HttpError(400, "Invalid ENS name"); }
+      const resolved = await clientFor(1).getEnsAddress({ name });
+      if (!resolved) throw new HttpError(404, "No Ethereum address record found for this ENS name");
+      return Response.json({ name, address: resolved, resolvedOn: "Ethereum mainnet", notice: "ENS resolution identifies an address on Ethereum mainnet. Check that contract address on the selected scan network before interpreting its behavior. Klyro does not register or assign ENS names." });
+    }
     if (p[0] === "health" && p[1] === "live") {
       const checks = await Promise.all(
         NETWORKS.map(async ({ id, name }) => {

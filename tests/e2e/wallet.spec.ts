@@ -148,8 +148,9 @@ test("the network menu switches only after the operator clicks a network", async
   await page.locator("header.app-topbar .wallet-net").click();
   const menu = page.getByRole("menu", { name: "Switch network" });
   await expect(menu).toBeVisible();
-  for (const name of ["Ethereum Mainnet", "Sepolia", "Base Mainnet", "Local Anvil"])
+  for (const name of ["Ethereum Mainnet", "Sepolia", "Base Mainnet"])
     await expect(menu.getByText(name, { exact: true })).toBeVisible();
+  await expect(menu.getByText("Local Anvil", { exact: true })).toHaveCount(0);
   await menu.getByRole("menuitem", { name: /Base Mainnet/ }).click();
   await expect(page.locator("header.app-topbar .wallet-net")).toContainText("Base");
 });

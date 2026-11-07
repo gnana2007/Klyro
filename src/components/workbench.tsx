@@ -16,13 +16,14 @@ import {
 import type { Snapshot, Diff, AIResult, EvidenceNode } from "@/core/types";
 import { compareSnapshots } from "@/core/diff";
 import PassportView from "./passport";
+import DiscoveryPanel from "./discovery-panel";
 import DeployPanel from "./deploy-panel";
 import type { WalletInfo } from "./wallet";
 const chains = [
   { id: 1, name: "Ethereum" },
   { id: 11155111, name: "Sepolia" },
   { id: 8453, name: "Base" },
-  { id: 31337, name: "Local Anvil" },
+  { id: 31337, name: "Local fixture" },
 ];
 const short = (s: string) =>
   s.length > 24 ? s.slice(0, 12) + "…" + s.slice(-8) : s;
@@ -71,7 +72,9 @@ function CopyValue({ value }: { value: string }) {
 }
 export default function Workbench() {
   const [address, setAddress] = useState(""),
-    [chainId, setChainId] = useState(1),
+    [chainId, setChainId] = useState(11155111),
+    [poolFromBlock, setPoolFromBlock] = useState(""),
+    [ensName, setEnsName] = useState(""),
     [scan, setScan] = useState<Snapshot | null>(null),
     [jobId, setJobId] = useState<string | null>(null),
     [stage, setStage] = useState(""),
@@ -200,6 +203,7 @@ export default function Workbench() {
       const j = await api("scans", {
         address,
         chainId,
+        ...(poolFromBlock ? { poolFromBlock } : {}),
         explain:
           withAI &&
           !!health?.inferenceConfigured &&
@@ -332,7 +336,7 @@ export default function Workbench() {
                     aria-label="Hook address"
                     placeholder="0x…"
                     value={address}
-                    onChange={(e) => setAddress(e.target.value.trim())}
+                    onChange={(e) => { setAddress(e.target.value.trim()); setPoolFromBlock(""); setEnsName(""); }}
                     required
                     pattern="0x[a-fA-F0-9]{40}"
                     autoComplete="off"
@@ -344,9 +348,9 @@ export default function Workbench() {
                 Network
                 <select
                   value={chainId}
-                  onChange={(e) => setChainId(Number(e.target.value))}
+                  onChange={(e) => { setChainId(Number(e.target.value)); setPoolFromBlock(""); setEnsName(""); }}
                 >
-                  {chains.map((c) => (
+                  {chains.filter((c) => c.id !== 31337 || chainId === 31337).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
@@ -392,6 +396,13 @@ export default function Workbench() {
               </span>
             </div>
           </form>
+          {!scan && <DiscoveryPanel request={api} onSelect={(hook, firstBlock, name) => {
+            setAddress(hook);
+            setChainId(11155111);
+            setPoolFromBlock(firstBlock);
+            setEnsName(name ?? "");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }} />}
           {busy && (
             <div className="progress" role="status">
               <span className="loading-graph" aria-hidden="true">
@@ -424,6 +435,7 @@ export default function Workbench() {
                     {short(scan.address)}
                     <CopyValue value={scan.address} />
                   </h2>
+                  {ensName && <p className="ens-identity"><strong>{ensName}</strong> resolves to this address on Ethereum mainnet. The Sepolia contract is identified by its address and scanned bytecode.</p>}
                   <p>
                     Observed {new Date(scan.blockTimestamp).toUTCString()}{" "}
                     <span className="badge">
@@ -1074,6 +1086,7 @@ function EvidenceGraph({
     finding?.evidenceIds.includes(n.id),
   );
   const node = scan.evidence.nodes.find((n) => n.id === nodeId) || evidence[0];
+  const diagramNodes = evidence.slice(0, 5);
   return (
     <section>
       <h2>Follow a finding to its evidence</h2>
@@ -1081,6 +1094,36 @@ function EvidenceGraph({
         Select a finding, then inspect its supporting observations. Unknown
         evidence remains unknown.
       </p>
+      {finding && <div className="evidence-map-wrap">
+        <svg className="evidence-map" viewBox="0 0 800 250" role="img" aria-label={`Finding ${finding.title} connected to ${diagramNodes.length} visible supporting observations`}>
+          <path d="M 105 125 H 265" className="evidence-map-line" />
+          {diagramNodes.map((item, index) => {
+            const y = 35 + index * (180 / Math.max(1, diagramNodes.length - 1));
+            return <g key={item.id} role="button" tabIndex={0} aria-label={`Inspect ${item.label}`} onClick={() => setNodeId(item.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setNodeId(item.id); } }}>
+              <path d={`M 265 125 L 570 ${y}`} className="evidence-map-line" />
+              <circle cx="570" cy={y} r={node?.id === item.id ? 12 : 9} className={node?.id === item.id ? "evidence-map-point selected" : "evidence-map-point"} />
+              <text x="595" y={y + 4}>{item.label.length > 22 ? item.label.slice(0, 21) + "…" : item.label}</text>
+            </g>;
+          })}
+          <circle cx="105" cy="125" r="27" className="evidence-map-origin" />
+          <text x="105" y="130" className="evidence-map-origin-label" textAnchor="middle">F</text>
+          <text x="22" y="190" className="evidence-map-caption">{finding.ruleId}</text>
+        </svg>
+        <svg className="evidence-map-mobile" viewBox={`0 0 330 ${Math.max(160, 120 + diagramNodes.length * 50)}`} role="img" aria-label={`Finding ${finding.title} connected to ${diagramNodes.length} supporting observations`}>
+          <circle cx="45" cy="36" r="22" className="evidence-map-origin" />
+          <text x="45" y="41" className="evidence-map-origin-label" textAnchor="middle">F</text>
+          <text x="82" y="41" className="evidence-map-title">{finding.title.length > 28 ? finding.title.slice(0, 27) + "…" : finding.title}</text>
+          {diagramNodes.map((item, index) => {
+            const y = 105 + index * 50;
+            return <g key={item.id} role="button" tabIndex={0} aria-label={`Inspect ${item.label}`} onClick={() => setNodeId(item.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setNodeId(item.id); } }}>
+              <path d={`M 45 58 L 45 ${y} H 67`} className="evidence-map-line" />
+              <circle cx="67" cy={y} r={node?.id === item.id ? 11 : 8} className={node?.id === item.id ? "evidence-map-point selected" : "evidence-map-point"} />
+              <text x="89" y={y + 4}>{item.label.length > 31 ? item.label.slice(0, 30) + "…" : item.label}</text>
+            </g>;
+          })}
+        </svg>
+        {evidence.length > diagramNodes.length && <span className="muted">{evidence.length - diagramNodes.length} more observations in the list below</span>}
+      </div>}
       <div className="graph" aria-label="Interactive evidence graph">
         <div className="graph-column">
           <h3>Findings</h3>
@@ -1946,7 +1989,7 @@ function WorkspaceSettings({
           <h2>Network connectivity</h2>
           {error && <p role="alert">{error}</p>}
           {live
-            ? live.networks.map((network) => (
+            ? live.networks.filter((network) => network.id !== 31337).map((network) => (
                 <div className="setting-row" key={network.id}>
                   <strong>{network.name}</strong>
                   <span>
@@ -2019,6 +2062,7 @@ function DiffView({ scan }: { scan: Snapshot }) {
     [diff, setDiff] = useState<Diff | null>(null),
     [error, setError] = useState("");
   const prior = history.find((item) => item.id === previous);
+  const trend = [...history].sort((a, b) => BigInt(a.blockNumber) < BigInt(b.blockNumber) ? -1 : 1);
   useEffect(() => {
     api(`hooks/${scan.chainId}/${scan.address}/history`)
       .then((h) => {
@@ -2050,6 +2094,15 @@ function DiffView({ scan }: { scan: Snapshot }) {
         <h2>Behavior diff</h2>
         <span className="muted">Same hook. Two observations.</span>
       </div>
+      {trend.length > 1 && <div className="trend-panel">
+        <div><span className="section-index">Observed trajectory</span><h3>Investigation attention over time</h3><p>Rule-weighted attention index at each saved block. A rise is a reason to investigate, not evidence of malicious behavior.</p></div>
+        <svg viewBox="0 0 720 180" role="img" aria-label={`Attention index across ${trend.length} saved observations`}>
+          <path d="M 36 145 H 690 M 36 15 V 145" className="trend-axis" />
+          <path d={trend.map((item, index) => `${index ? "L" : "M"} ${36 + index * 654 / Math.max(1, trend.length - 1)} ${145 - item.attentionScore * 1.25}`).join(" ")} className="trend-line" />
+          {trend.map((item, index) => <g key={item.id}><circle cx={36 + index * 654 / Math.max(1, trend.length - 1)} cy={145 - item.attentionScore * 1.25} r={item.id === scan.id ? 7 : 5} className={item.id === scan.id ? "trend-point current" : "trend-point"}><title>Block {item.blockNumber}: attention {item.attentionScore}/100, {item.findings.length} findings</title></circle></g>)}
+          <text x="36" y="169">earlier</text><text x="648" y="169">later</text>
+        </svg>
+      </div>}
       <div className="compare-controls">
         <label>
           Previous observation

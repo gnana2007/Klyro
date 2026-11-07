@@ -20,6 +20,8 @@ test("scanner, validation, history and responsive layout", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Scan a hook", exact: true }),
   ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Find hooks without an address" })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Local fixture" })).toHaveCount(0);
   await page.getByLabel("Hook address", { exact: true }).fill("invalid");
   expect(
     await page
@@ -48,6 +50,8 @@ test("API rejects invalid addresses and fabricated scan IDs", async ({
   });
   expect(response.status()).toBe(400);
   expect((await request.get("/api/scans/does-not-exist")).status()).toBe(404);
+  expect((await request.get("/api/discover/sepolia?blocks=1")).status()).toBe(400);
+  expect((await request.get("/api/ens/resolve?name=not-an-ens-name")).status()).toBe(400);
 });
 test("real scan evidence trail and public passport", async ({
   page,
@@ -76,6 +80,7 @@ test("real scan evidence trail and public passport", async ({
   await expect(
     page.locator(".graph-column .node.selected").first(),
   ).toContainText(title.split("\n")[0]);
+  await expect(page.locator(test.info().project.name === "mobile" ? "svg.evidence-map-mobile" : "svg.evidence-map")).toBeVisible();
   await page.screenshot({
     path: "evidence/screenshots/evidence-" + test.info().project.name + ".png",
     fullPage: true,
@@ -133,6 +138,7 @@ test("saved observations open in the comparison workspace with evidence links", 
   await expect(
     page.getByText("Previous snapshot", { exact: true }),
   ).toBeVisible();
+  await expect(page.locator(".trend-panel svg")).toBeVisible();
   await page.getByRole("button", { name: "Compare versions" }).click();
   await expect(page.getByText(/confirmed observation changes/)).toBeVisible();
   await page
